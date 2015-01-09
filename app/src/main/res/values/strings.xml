@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">XLight</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_test_light">TestLight</string>
+    <string name="my_test">连接管理</string>
+    <string name="my_label">连接标签</string>
+    <string name="title_activity_apsetup">APSetupActivity</string>
+
+</resources>
