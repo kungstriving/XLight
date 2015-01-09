@@ -23,6 +23,11 @@ public class DataAgent {
         CommIntentService.startActionDetectGate(context);
     }
 
+    /**
+     * 登录网关
+     * @param context
+     * @param receiver
+     */
     public void logonToGate(Context context, ResultReceiver receiver) {
 
     }
