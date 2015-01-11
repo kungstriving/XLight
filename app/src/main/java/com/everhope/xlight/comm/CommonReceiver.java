@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.ResultReceiver;
 
 /**
+ * 通用结果接收器
  *
  * Created by kongxiaoyang on 2015/1/9.
  */

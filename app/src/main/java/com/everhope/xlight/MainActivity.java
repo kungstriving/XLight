@@ -11,11 +11,18 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import com.everhope.xlight.app.AppUtils;
 import com.everhope.xlight.comm.DataAgent;
+import com.everhope.xlight.comm.LogonResponseMsg;
+import com.everhope.xlight.comm.MessageUtils;
 import com.everhope.xlight.constants.Constants;
+import com.everhope.xlight.constants.LogonRespStatus;
 
 import org.apache.commons.lang.StringUtils;
+
+import java.io.IOException;
 
 /**
  * 第一个页面，负责显示splash画面和连接网关
@@ -62,10 +69,11 @@ public class MainActivity extends ActionBarActivity {
             XLightApplication lightApp = XLightApplication.getInstance();
 
             DataAgent dataAgent = lightApp.getDataAgent();
+
             dataAgent.detectGateInLan(this, new ResultReceiver(new Handler()) {
                 @Override
                 protected void onReceiveResult(int resultCode, Bundle resultData) {
-                    if (resultCode == 0) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                         //获取到了网关STA地址
                         String gateStaIP = resultData.getString(Constants.KEYS_PARAMS.GATE_STA_IP);
 
@@ -104,6 +112,45 @@ public class MainActivity extends ActionBarActivity {
      */
     private void logonToGate(String gateStaIP) {
 
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        //建立连接
+        try {
+            dataAgent.buildConnection(gateStaIP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, e.getMessage());
+            //显示错误消息
+            Toast.makeText(getApplicationContext(), "建立连接失败",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String clientID = AppUtils.getAndroidDeviceID();
+
+        dataAgent.logonToGate(clientID, getApplicationContext(), new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                //接收到登录回调
+                if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                    //解析消息
+                    int bytesCount = resultData.getInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT);
+                    byte[] bytesData = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+
+                    LogonResponseMsg logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount);
+                    //判断登录结果
+                    if (logonResponseMsg.getLogonRespStatus() == LogonRespStatus.OK) {
+                        //正常登录 进入主页面
+                        Intent intent = new Intent(MainActivity.this, APSetupActivity.class);
+                        startActivity(intent);
+                    } else if (logonResponseMsg.getLogonRespStatus() == LogonRespStatus.NOEXIST) {
+                        //网关不存在该设备id 则进入添加手机画面
+                    }
+                } else {
+                    Toast.makeText(getApplicationContext(), "登录网关失败", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+        //将sta地址加入pref
         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
         editor.putString(Constants.SYSTEM_SETTINGS.GATE_STA_IP, gateStaIP);
         editor.commit();
