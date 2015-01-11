@@ -8,5 +8,13 @@
     <string name="my_test">连接管理</string>
     <string name="my_label">连接标签</string>
     <string name="title_activity_apsetup">APSetupActivity</string>
+    <string name="drawer_open">Open navigation drawer</string>
+    <string name="drawer_close">Close navigation drawer</string>
 
+    <string-array name="left_nav_items">
+        <item>我的家</item>
+        <item>灯</item>
+        <item>场景</item>
+        <item>设置</item>
+    </string-array>
 </resources>
