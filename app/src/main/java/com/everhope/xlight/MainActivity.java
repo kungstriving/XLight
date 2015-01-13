@@ -1,19 +1,28 @@
 package com.everhope.xlight;
 
+import android.app.Fragment;
+import android.app.FragmentManager;
+import android.app.SearchManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -30,6 +39,7 @@ import com.everhope.xlight.constants.LogonRespStatus;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
+import java.util.Locale;
 
 /**
  * 第一个页面，负责显示splash画面和连接网关
@@ -39,6 +49,12 @@ public class MainActivity extends ActionBarActivity {
     private static final String TAG = "MainActivity";
 
     private ProgressBar progressBar;
+    private ListView leftListView;
+    private DrawerLayout drawerLayout;
+    private String[] leftItems;
+    private CharSequence mTitle;
+    private CharSequence mDrawerTitle;
+    private ActionBarDrawerToggle mDrawerToggle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,13 +62,14 @@ public class MainActivity extends ActionBarActivity {
         getSupportActionBar().hide();
 
         //检查是否第一次运行
+        /*
         if (isVeryFirstLoad()) {
             Log.i(TAG, "第一次启动运行");
             //是第一次运行
             //网络侦测网关地址
             setVeryFirstLoad();
 
-        }
+        }*/
 
         //连接到网关
         //connectToGate();
@@ -63,16 +80,17 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         //动态加载splash
-        final RelativeLayout mainLayout = (RelativeLayout)findViewById(R.id.main_layout);
-//        relativeLayout.addView(i);
+        final FrameLayout mainLayout = (FrameLayout)findViewById(R.id.content_frame);
         final ImageView imageView = new ImageView(MainActivity.this);
         imageView.setImageResource(R.drawable.splash);
-        RelativeLayout.LayoutParams layoutParams =
-                new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        FrameLayout.LayoutParams layoutParams =
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         imageView.setScaleType(ImageView.ScaleType.FIT_XY);
 
         mainLayout.addView(imageView, layoutParams);
+
         //显示loading
+
         progressBar = (ProgressBar)findViewById(R.id.progressBar);
         progressBar.bringToFront();
         progressBar.setVisibility(ProgressBar.VISIBLE);
@@ -93,17 +111,77 @@ public class MainActivity extends ActionBarActivity {
         }, 5000);
 
         //设置抽屉
-        //setLeftDrawer();
+        setLeftDrawer(savedInstanceState);
     }
 
-    private void setLeftDrawer() {
-        String[] leftItems = getResources().getStringArray(R.array.left_nav_items);
-        DrawerLayout drawerLayout = (DrawerLayout)findViewById(R.id.main_drawer_layout);
-        ListView leftListView = (ListView)findViewById(R.id.main_left_drawer);
+    private void setLeftDrawer(Bundle savedInstanceState) {
+        leftItems = getResources().getStringArray(R.array.left_nav_items);
+        drawerLayout = (DrawerLayout)findViewById(R.id.main_drawer_layout);
+        leftListView = (ListView)findViewById(R.id.main_left_drawer);
+
+        drawerLayout.setDrawerShadow(R.drawable.drawer_shadow, GravityCompat.START);
 
         leftListView.setAdapter(new ArrayAdapter<String>(this, R.layout.drawer_list_item, leftItems));
-        //leftListView.setOnItemClickListener(new DrawerItemClickListener());
+        leftListView.setOnItemClickListener(new DrawerItemClickListener());
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
+
+        mTitle = mDrawerTitle = getTitle();
+        mDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.drawer_open, R.string.drawer_close) {
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                getSupportActionBar().setTitle(mDrawerTitle);
+                invalidateOptionsMenu();
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                getSupportActionBar().setTitle(mTitle);
+                invalidateOptionsMenu();
+            }
+        };
+
+        drawerLayout.setDrawerListener(mDrawerToggle);
+
+        if(savedInstanceState == null) {
+            selectItem(0);
+        }
     }
+
+    private class DrawerItemClickListener implements ListView.OnItemClickListener {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            selectItem(position);
+        }
+    }
+
+    /** Swaps fragments in the main content view */
+    private void selectItem(int position) {
+        // Create a new fragment and specify the planet to show based on position
+        Fragment fragment = new PlanetFragment();
+        Bundle args = new Bundle();
+        args.putInt(PlanetFragment.ARG_PLANET_NUMBER, position);
+        fragment.setArguments(args);
+
+        // Insert the fragment by replacing any existing fragment
+        FragmentManager fragmentManager = getFragmentManager();
+        fragmentManager.beginTransaction()
+                .replace(R.id.content_frame, fragment)
+                .commit();
+
+        // Highlight the selected item, update the title, and close the drawer
+        leftListView.setItemChecked(position, true);
+        setTitle(leftItems[position]);
+        drawerLayout.closeDrawer(leftListView);
+    }
+
+    @Override
+    public void setTitle(CharSequence title) {
+        mTitle = title;
+        getSupportActionBar().setTitle(mTitle);
+    }
+
     /**
      * 连接到网关
      */
@@ -244,18 +322,75 @@ public class MainActivity extends ActionBarActivity {
         return true;
     }
 
+    /* Called whenever we call invalidateOptionsMenu() */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // If the nav drawer is open, hide action items related to the content view
+        boolean drawerOpen = drawerLayout.isDrawerOpen(leftListView);
+        menu.findItem(R.id.action_websearch).setVisible(!drawerOpen);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
+        // Handle action buttons
+        switch(item.getItemId()) {
+            case R.id.action_websearch:
+                // create intent to perform web search for this planet
+                Intent intent = new Intent(Intent.ACTION_WEB_SEARCH);
+                intent.putExtra(SearchManager.QUERY, getSupportActionBar().getTitle());
+                // catch event that there's no activity to handle intent
+                if (intent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(this, R.string.app_not_available, Toast.LENGTH_LONG).show();
+                }
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
-        return super.onOptionsItemSelected(item);
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        mDrawerToggle.syncState();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mDrawerToggle.onConfigurationChanged(newConfig);
+    }
+
+    /**
+     * Fragment that appears in the "content_frame", shows a planet
+     */
+    public static class PlanetFragment extends Fragment {
+        public static final String ARG_PLANET_NUMBER = "planet_number";
+
+        public PlanetFragment() {
+            // Empty constructor required for fragment subclasses
+        }
+
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            View rootView = inflater.inflate(R.layout.fragment_planet, container, false);
+            int i = getArguments().getInt(ARG_PLANET_NUMBER);
+            String planet = getResources().getStringArray(R.array.left_nav_items)[i];
+
+            int imageId = getResources().getIdentifier(planet.toLowerCase(Locale.getDefault()),
+                    "drawable", getActivity().getPackageName());
+            ((ImageView) rootView.findViewById(R.id.image)).setImageResource(imageId);
+            getActivity().setTitle(planet);
+            return rootView;
+        }
     }
 }

@@ -4,73 +4,19 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <!-- main content view -->
-    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-        android:layout_height="match_parent" android:paddingLeft="0dp"
-        android:paddingRight="0dp"
-        android:paddingTop="0dp"
-        android:paddingBottom="0dp" tools:context=".MainActivity"
-        android:id="@+id/main_layout">
+    <FrameLayout
+        android:id="@+id/content_frame"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
 
         <ProgressBar
+            style="?android:attr/progressBarStyleLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/progressBar"
-            android:layout_marginBottom="50dp"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true" />
-
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:layout_alignParentTop="true"
-            android:layout_centerHorizontal="true">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试连接"
-                android:id="@+id/button" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试重连"
-                android:id="@+id/button2" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试灯亮度"
-                android:id="@+id/button3" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试灯颜色"
-                android:id="@+id/button4" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试场景-学习"
-                android:id="@+id/button5" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试场景-电视"
-                android:id="@+id/button6" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="测试组合"
-                android:id="@+id/button7" />
-        </LinearLayout>
-
-    </RelativeLayout>
+            android:layout_gravity="center_horizontal|bottom"
+            android:layout_marginBottom="30dp" />
+    </FrameLayout>
     <!-- the drawer layout -->
     <ListView android:id="@+id/main_left_drawer"
         android:layout_width="240dp"
