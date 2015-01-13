@@ -6,13 +6,13 @@ import android.app.SearchManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,11 +22,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.everhope.xlight.app.AppUtils;
@@ -59,7 +57,7 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getSupportActionBar().hide();
+//        getSupportActionBar().hide();
 
         //检查是否第一次运行
         /*
@@ -80,35 +78,35 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         //动态加载splash
-        final FrameLayout mainLayout = (FrameLayout)findViewById(R.id.content_frame);
-        final ImageView imageView = new ImageView(MainActivity.this);
-        imageView.setImageResource(R.drawable.splash);
-        FrameLayout.LayoutParams layoutParams =
-                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        imageView.setScaleType(ImageView.ScaleType.FIT_XY);
-
-        mainLayout.addView(imageView, layoutParams);
+//        final FrameLayout mainLayout = (FrameLayout)findViewById(R.id.content_frame);
+//        final ImageView imageView = new ImageView(MainActivity.this);
+//        imageView.setImageResource(R.drawable.splash);
+//        FrameLayout.LayoutParams layoutParams =
+//                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//        imageView.setScaleType(ImageView.ScaleType.FIT_XY);
+//
+//        mainLayout.addView(imageView, layoutParams);
 
         //显示loading
 
-        progressBar = (ProgressBar)findViewById(R.id.progressBar);
-        progressBar.bringToFront();
-        progressBar.setVisibility(ProgressBar.VISIBLE);
+//        progressBar = (ProgressBar)findViewById(R.id.progressBar);
+//        progressBar.bringToFront();
+//        progressBar.setVisibility(ProgressBar.VISIBLE);
 
         //模拟5秒钟后进入新画面
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-
-                //删除splash view 停止loading
-                progressBar.setVisibility(ProgressBar.INVISIBLE);
-                mainLayout.removeView(imageView);
-                //显示actionbar
-                getSupportActionBar().show();
-                handler.removeCallbacks(this);
-            }
-        }, 5000);
+//        final Handler handler = new Handler();
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                //删除splash view 停止loading
+////                progressBar.setVisibility(ProgressBar.INVISIBLE);
+//                mainLayout.removeView(imageView);
+//                //显示actionbar
+//                getSupportActionBar().show();
+//                handler.removeCallbacks(this);
+//            }
+//        }, 5000);
 
         //设置抽屉
         setLeftDrawer(savedInstanceState);
@@ -128,7 +126,8 @@ public class MainActivity extends ActionBarActivity {
         getSupportActionBar().setHomeButtonEnabled(true);
 
         mTitle = mDrawerTitle = getTitle();
-        mDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.drawer_open, R.string.drawer_close) {
+        mDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout,
+                R.string.drawer_open, R.string.drawer_close) {
             @Override
             public void onDrawerOpened(View drawerView) {
                 getSupportActionBar().setTitle(mDrawerTitle);
