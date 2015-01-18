@@ -33,6 +33,8 @@ public class LoadActivity extends ActionBarActivity {
 
                 Intent intent = new Intent(LoadActivity.this, MainActivity.class);
                 startActivity(intent);
+                //
+                LoadActivity.this.finish();
             }
         }, 5000);
 
