@@ -14,22 +14,17 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.transition.Scene;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.everhope.xlight.app.AppUtils;
-import com.everhope.xlight.app.SceneFragment;
 import com.everhope.xlight.comm.DataAgent;
 import com.everhope.xlight.comm.LogonResponseMsg;
 import com.everhope.xlight.comm.MessageUtils;
@@ -39,7 +34,6 @@ import com.everhope.xlight.constants.LogonRespStatus;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
-import java.util.Locale;
 
 /**
  * 第一个页面，负责显示splash画面和连接网关
@@ -356,7 +350,7 @@ public class MainActivity extends ActionBarActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         // If the nav drawer is open, hide action items related to the content view
         boolean drawerOpen = drawerLayout.isDrawerOpen(leftListView);
-        menu.findItem(R.id.action_websearch).setVisible(!drawerOpen);
+        menu.findItem(R.id.action_frag_main_add).setVisible(!drawerOpen);
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -370,16 +364,11 @@ public class MainActivity extends ActionBarActivity {
         }
         // Handle action buttons
         switch(item.getItemId()) {
-            case R.id.action_websearch:
-                // create intent to perform web search for this planet
-                Intent intent = new Intent(Intent.ACTION_WEB_SEARCH);
-                intent.putExtra(SearchManager.QUERY, getSupportActionBar().getTitle());
-                // catch event that there's no activity to handle intent
-                if (intent.resolveActivity(getPackageManager()) != null) {
-                    startActivity(intent);
-                } else {
-                    Toast.makeText(this, R.string.app_not_available, Toast.LENGTH_LONG).show();
-                }
+            case R.id.action_frag_main_add:
+                Toast.makeText (MainActivity.this, "添加场景", Toast.LENGTH_LONG).show();
+                return true;
+            case R.id.action_frag_main_edit:
+                Toast.makeText (MainActivity.this, "编辑场景", Toast.LENGTH_LONG).show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
