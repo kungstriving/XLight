@@ -13,6 +13,7 @@
     <string name="action_websearch">Web search</string>
     <string name="app_not_available">Sorry, there\'s no web browser available</string>
     <string name="home_fragment_title">我的家</string>
+    <string name="light_fragment_title">灯</string>
 
     <string-array name="left_nav_items">
         <item>我的家</item>
