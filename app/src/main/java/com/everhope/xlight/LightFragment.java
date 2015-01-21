@@ -3,15 +3,24 @@ package com.everhope.xlight;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.ArrayAdapter;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.ExpandableListView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +32,9 @@ import java.util.List;
 public class LightFragment extends Fragment {
 
     private static final String ARG_HELLO_LIGHT = "hello_light";
-    private  List<String> groupArray;
-    private  List<List<String>> childArray;
+    private List<String> groupArray;
+    private List<List<String>> childArray;
+    private LightExpandableListAdapter lightExpandableListAdapter;
 
     private String mHelloLight;
 
@@ -49,6 +59,7 @@ public class LightFragment extends Fragment {
 
         groupArray.add("卧室");
         groupArray.add("客厅");
+        groupArray.add("未分组");
 
         List<String> tempArray = new ArrayList<>();
         tempArray.add("00001");
@@ -69,6 +80,17 @@ public class LightFragment extends Fragment {
         tempArray.add("10005");
         tempArray.add("10006");
 
+        //add 客厅
+        childArray.add(tempArray);
+        //add 未分组
+        tempArray = new ArrayList<>();
+        tempArray.add("20001");
+        tempArray.add("20002");
+        tempArray.add("20003");
+        tempArray.add("20004");
+        tempArray.add("20005");
+        tempArray.add("20006");
+
         childArray.add(tempArray);
     }
 
@@ -86,8 +108,34 @@ public class LightFragment extends Fragment {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_light, container, false);
 
-        ExpandableListView expandableListView = (ExpandableListView)rootView.findViewById(R.id.expandableListView);
-        expandableListView.setAdapter(new LightExpandableListAdapter(getActivity()));
+        ExpandableListView expandableListView = (ExpandableListView)rootView.findViewById(R.id.alllights_elv);
+        lightExpandableListAdapter = new LightExpandableListAdapter(getActivity());
+
+        expandableListView.setAdapter(lightExpandableListAdapter);
+
+        //设置点击事件
+        expandableListView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+            @Override
+            public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
+                Toast.makeText(getActivity(), "选择了 " + lightExpandableListAdapter.getChild(groupPosition, childPosition),Toast.LENGTH_LONG).show();
+                return false;
+            }
+        });
+
+        //设置拖放接收事件
+        expandableListView.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                Toast.makeText(getActivity(),
+                        "gotyou",Toast.LENGTH_LONG).show();
+                childArray.get(0).add("新来的");
+                lightExpandableListAdapter.notifyDataSetChanged();
+                return false;
+            }
+        });
+        for (int i = 0; i < groupArray.size(); i++) {
+            expandableListView.expandGroup(i, false);
+        }
 
         getActivity().setTitle(R.string.light_fragment_title);
         return rootView;
@@ -117,8 +165,47 @@ public class LightFragment extends Fragment {
 
         @Override
         public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
-            String str = childArray.get(groupPosition).get(childPosition);
-            return generateView(str);
+            String childName = childArray.get(groupPosition).get(childPosition);
+
+            final LinearLayout ll = new LinearLayout(getActivity());
+            ll.setOrientation(LinearLayout.HORIZONTAL);
+            ll.setPadding(96, 10, 0, 0);
+            ll.setMinimumHeight(100);
+            LinearLayout.LayoutParams textViewLayoutParams =
+                    new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            TextView textView = new TextView(getActivity());
+            textView.setText(childName);
+            textView.setTextSize(24);
+//            textView.setHeight(64);
+            /*
+            此处textview 会遮住linearlayout 的OnChildClick事件 所以需要单独设置一个按钮，当用户长按该按钮时候进行拖放
+             */
+            ll.addView(textView, textViewLayoutParams);
+            textView.setTag("drag");
+            textView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
+
+                    String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
+                    ClipData dragData = new ClipData(v.getTag().toString(),
+                            mimeTypes, item);
+
+                    // Instantiates the drag shadow builder.
+                    View.DragShadowBuilder myShadow = new View.DragShadowBuilder(ll);
+
+                    // Starts the drag
+                    v.startDrag(dragData,  // the data to be dragged
+                            myShadow,  // the drag shadow builder
+                            null,      // no need to use local data
+                            0          // flags (not currently used, set to 0)
+                    );
+                    return false;
+                }
+            });
+
+
+            return ll;
         }
 
         @Override
@@ -138,8 +225,19 @@ public class LightFragment extends Fragment {
 
         @Override
         public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
-            String string = groupArray.get(groupPosition);
-            return  generateView(string);
+            String groupName = groupArray.get(groupPosition);
+
+            LinearLayout ll = new LinearLayout(getActivity());
+            ll.setOrientation(LinearLayout.HORIZONTAL);
+            ll.setPadding(64, 0, 0, 0);
+            ll.setBackgroundColor(Color.parseColor("gray"));
+            TextView textView = new TextView(getActivity());
+            textView.setText(groupName);
+            textView.setTextSize(18);
+
+            ll.addView(textView);
+
+            return  ll;
         }
 
         @Override
