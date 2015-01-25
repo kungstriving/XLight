@@ -1,4 +1,4 @@
-package com.everhope.xlight;
+package com.everhope.xlight.fragments;
 
 import android.app.Fragment;
 import android.content.Context;
@@ -18,6 +18,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+
+import com.everhope.xlight.R;
 
 /**
  * 主页fragment

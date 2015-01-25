@@ -1,14 +1,10 @@
-package com.everhope.xlight;
+package com.everhope.xlight.activities;
 
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.app.SearchManager;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -24,19 +20,16 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.everhope.xlight.app.AppUtils;
-import com.everhope.xlight.comm.DataAgent;
-import com.everhope.xlight.comm.LogonResponseMsg;
-import com.everhope.xlight.comm.MessageUtils;
+import com.everhope.xlight.fragments.HomeFragment;
+import com.everhope.xlight.fragments.LightFragment;
+import com.everhope.xlight.R;
+import com.everhope.xlight.fragments.SceneFragment;
+import com.everhope.xlight.fragments.SettingsFragment;
 import com.everhope.xlight.constants.Constants;
-import com.everhope.xlight.constants.LogonRespStatus;
-
-import org.apache.commons.lang.StringUtils;
-
-import java.io.IOException;
 
 /**
- * 第一个页面，负责显示splash画面和连接网关
+ * 主页面
+ * 该页面负责导航到各个子页面
  */
 public class MainActivity extends ActionBarActivity {
 
@@ -46,6 +39,7 @@ public class MainActivity extends ActionBarActivity {
     private ListView leftListView;
     private DrawerLayout drawerLayout;
     private String[] leftItems;
+    private int currentSelectFrag;
     private CharSequence mTitle;
     private CharSequence mDrawerTitle;
     private ActionBarDrawerToggle mDrawerToggle;
@@ -196,6 +190,8 @@ public class MainActivity extends ActionBarActivity {
         // Highlight the selected item, update the title, and close the drawer
         leftListView.setItemChecked(position, true);
         setTitle(leftItems[position]);
+        this.currentSelectFrag = position;
+//        invalidateOptionsMenu();        //刷新menu
         drawerLayout.closeDrawer(leftListView);
     }
 
@@ -205,112 +201,7 @@ public class MainActivity extends ActionBarActivity {
         getSupportActionBar().setTitle(mTitle);
     }
 
-    /**
-     * 连接到网关
-     */
-    private void connectToGate() {
 
-        Log.i(TAG, "连接到网关");
-
-        //使用STA地址连接
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        String gateIP = pref.getString(Constants.SYSTEM_SETTINGS.GATE_STA_IP, "");
-        if (StringUtils.isEmpty(gateIP)) {
-            Log.w(TAG, "网关STA地址为空");
-            //网关地址为空 则局域网内广播测试连接消息
-            XLightApplication lightApp = XLightApplication.getInstance();
-
-            DataAgent dataAgent = lightApp.getDataAgent();
-
-            Log.i(TAG, "开始网络广播侦测");
-            dataAgent.detectGateInLan(this, new ResultReceiver(new Handler()) {
-                @Override
-                protected void onReceiveResult(int resultCode, Bundle resultData) {
-                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
-                        //获取到了网关STA地址
-                        String gateStaIP = resultData.getString(Constants.KEYS_PARAMS.GATE_STA_IP);
-                        Log.i(TAG, "获取到了网关地址");
-                        //使用sta地址直连网关，即直接登录网关
-                        logonToGate(gateStaIP);
-
-                    } else {
-
-                        //关闭loading 进入AP网络设置界面
-                        if (progressBar.isShown()) {
-                            progressBar.setVisibility(ProgressBar.INVISIBLE);
-                        }
-                        //连接AP网络
-                        switchToAPNetwork();
-                        Intent intent = new Intent(MainActivity.this, APSetupActivity.class);
-                        startActivity(intent);
-                    }
-                }
-            });
-        }
-        //  判断STA地址是否存在
-
-        //  STA地址不存在 全网广播 8899端口
-
-        //      有回应，则使用回应地址，更新STA地址，然后再使用STA地址连接
-
-        //      无回应，则连接到网关AP网络（10.10.100.254）
-        //
-
-        //  STA地址存在，直接建立socket
-    }
-
-    /**
-     * 根据sta地址登录网关
-     * @param gateStaIP
-     */
-    private void logonToGate(String gateStaIP) {
-
-        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
-        //建立连接
-        try {
-            dataAgent.buildConnection(gateStaIP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.w(TAG, e.getMessage());
-            //显示错误消息
-            Toast.makeText(getApplicationContext(), "建立连接失败",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        String clientID = AppUtils.getAndroidDeviceID();
-
-        dataAgent.logonToGate(clientID, getApplicationContext(), new ResultReceiver(new Handler()) {
-            @Override
-            protected void onReceiveResult(int resultCode, Bundle resultData) {
-                //接收到登录回调
-                if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
-                    //解析消息
-                    int bytesCount = resultData.getInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT);
-                    byte[] bytesData = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
-
-                    LogonResponseMsg logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount);
-                    //判断登录结果
-                    if (logonResponseMsg.getLogonRespStatus() == LogonRespStatus.OK) {
-                        //正常登录 进入主页面
-                        Intent intent = new Intent(MainActivity.this, APSetupActivity.class);
-                        startActivity(intent);
-                    } else if (logonResponseMsg.getLogonRespStatus() == LogonRespStatus.NOEXIST) {
-                        //网关不存在该设备id 则进入添加手机画面
-                    }
-                } else {
-                    Toast.makeText(getApplicationContext(), "登录网关失败", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-        //将sta地址加入pref
-        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
-        editor.putString(Constants.SYSTEM_SETTINGS.GATE_STA_IP, gateStaIP);
-        editor.commit();
-    }
-    private void switchToAPNetwork() {
-
-    }
     /**
      * 设置启动过
      */
@@ -350,7 +241,30 @@ public class MainActivity extends ActionBarActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         // If the nav drawer is open, hide action items related to the content view
         boolean drawerOpen = drawerLayout.isDrawerOpen(leftListView);
-        menu.findItem(R.id.action_frag_main_add).setVisible(!drawerOpen);
+        int menuLength = menu.size();
+        if (drawerOpen) {
+            for (int i = 0; i < menuLength; i++) {
+                menu.getItem(i).setVisible(false);
+            }
+        } else {
+            //关闭的时候
+            switch (this.currentSelectFrag) {
+                case 0:
+                    //首页
+                    menu.findItem(R.id.action_frag_main_add).setVisible(true);
+                    menu.findItem(R.id.action_frag_main_edit).setVisible(false);
+                    break;
+                case 1:
+                    menu.findItem(R.id.action_frag_main_add).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_edit).setVisible(true);
+                    break;
+                default:
+                    menu.findItem(R.id.action_frag_main_edit).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_add).setVisible(false);
+                    break;
+            }
+        }
+
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -366,9 +280,6 @@ public class MainActivity extends ActionBarActivity {
         switch(item.getItemId()) {
             case R.id.action_frag_main_add:
                 Toast.makeText (MainActivity.this, "添加场景", Toast.LENGTH_LONG).show();
-                return true;
-            case R.id.action_frag_main_edit:
-                Toast.makeText (MainActivity.this, "编辑场景", Toast.LENGTH_LONG).show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

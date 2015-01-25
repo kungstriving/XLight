@@ -2,7 +2,7 @@ package com.everhope.xlight;
 
 import android.app.Application;
 
-import com.everhope.xlight.app.AppContext;
+import com.everhope.xlight.helpers.AppContext;
 import com.everhope.xlight.comm.DataAgent;
 
 /**

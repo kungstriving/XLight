@@ -1,5 +1,4 @@
-package com.everhope.xlight;
-
+package com.everhope.xlight.fragments;
 
 import android.os.Bundle;
 import android.app.Fragment;
@@ -7,29 +6,30 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.everhope.xlight.R;
+
 /**
- * 设置
+ * 场景
  */
-public class SettingsFragment extends Fragment {
-    private static final String ARG_HELLO_SETTINGS = "hello_settings";
+public class SceneFragment extends Fragment {
+    private static final String ARG_HELLO_SCENE = "hello_info";
 
-    private String mHelloSettings;
-
+    private String mHelloInfo;
 
     /**
-     *
-     * @param paramHelloSettings
+     * 获取实例
+     * @param paramHelloInfo
      * @return
      */
-    public static SettingsFragment newInstance(String paramHelloSettings) {
-        SettingsFragment fragment = new SettingsFragment();
+    public static SceneFragment newInstance(String paramHelloInfo) {
+        SceneFragment fragment = new SceneFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_HELLO_SETTINGS, paramHelloSettings);
+        args.putString(ARG_HELLO_SCENE, paramHelloInfo);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public SettingsFragment() {
+    public SceneFragment() {
         // Required empty public constructor
     }
 
@@ -37,7 +37,7 @@ public class SettingsFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mHelloSettings = getArguments().getString(ARG_HELLO_SETTINGS);
+            mHelloInfo = getArguments().getString(ARG_HELLO_SCENE);
         }
     }
 
@@ -45,8 +45,7 @@ public class SettingsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_settings, container, false);
+        return inflater.inflate(R.layout.fragment_scene, container, false);
     }
-
 
 }

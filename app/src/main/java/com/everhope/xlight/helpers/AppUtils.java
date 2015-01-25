@@ -1,4 +1,4 @@
-package com.everhope.xlight.app;
+package com.everhope.xlight.helpers;
 
 /**
  * 系统工具类

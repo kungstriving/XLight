@@ -1,11 +1,13 @@
 package com.everhope.xlight.comm;
 
 import android.content.Context;
-import android.os.Message;
+import android.os.Bundle;
+import android.os.Handler;
 import android.os.ResultReceiver;
 import android.util.Log;
 
 import com.everhope.xlight.constants.Constants;
+import com.everhope.xlight.helpers.MessageUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +22,7 @@ import java.net.Socket;
  */
 public class DataAgent {
 
-    private static final String TAG = "DataAgent";
+    private static final String TAG = "DataAgent@Light";
     private static DataAgent dataAgent = null;
 
     private Socket socket = null;
@@ -31,12 +33,37 @@ public class DataAgent {
         return this.inputStream;
     }
 
+    public OutputStream getOutputStream() {
+        return this.outputStream;
+    }
+
+    public void serviceDiscover(final Context context, final ResultReceiver receiver) {
+//        if (!this.isConnected()) {
+//            try {
+//                buildConnection("10.10.100.254", Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                return;
+//            }
+//        }
+        CommIntentService.startActionConnect(context, new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                TCPReceiveIntentService.startActionListenServiceDiscover(context, receiver);
+                CommIntentService.startActionServiceDiscover(context);
+            }
+        });
+
+    }
+
     /**
-     * 侦测网关在局域网范围内
+     * 侦测网关
+     * 在局域网范围内
      *
      */
     public void detectGateInLan(Context context, ResultReceiver receiver) {
-        UDPReceiveIntentService.startActionListenDetectBack(context, receiver);
+//        UDPReceiveIntentService.startActionListenDetectBack(context, receiver);
+        TCPReceiveIntentService.startActionListenBack(context, receiver);
         CommIntentService.startActionDetectGate(context);
     }
 
@@ -90,6 +117,8 @@ public class DataAgent {
         try {
             socket = new Socket(serverHost, serverPort);
             socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
+            inputStream = socket.getInputStream();
+            outputStream = socket.getOutputStream();
         } catch (IOException e) {
             //连接报错
             Log.w(TAG, e.getStackTrace().toString());
@@ -118,6 +147,13 @@ public class DataAgent {
 
     }
 
+    private boolean isConnected() {
+        if (this.socket != null) {
+            return this.socket.isConnected();
+        } else {
+            return false;
+        }
+    }
     /**
      * 获取单例数据操作类
      * @return 数据代理对象

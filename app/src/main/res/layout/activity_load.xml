@@ -4,7 +4,7 @@
     android:paddingRight="0dp"
     android:paddingTop="0dp"
     android:paddingBottom="0dp"
-    tools:context="com.everhope.xlight.LoadActivity"
+    tools:context="com.everhope.xlight.activities.LoadActivity"
     android:padding="0dp">
 
     <ImageView

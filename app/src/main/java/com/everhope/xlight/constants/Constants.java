@@ -30,6 +30,11 @@ public class Constants {
         public static final String GATE_STA_IP = "ss_gate_sta_ip";
 
         /**
+         * 网关固定AP地址
+         */
+        public static final String GATE_AP_IP = "10.10.100.254";
+
+        /**
          * 网关监听端口 8899
          */
         public static final int GATE_TALK_PORT = 8899;
@@ -65,4 +70,14 @@ public class Constants {
         public static final String NETWORK_READED_BYTES_CONTENT = "kp_bytes_content";
     }
 
+    /**
+     * 消息相关
+     */
+    public static class MESSAGES_CONSTS {
+        /**
+         * 消息报文头
+         * 0xFE  0xFE  0xFE  0x7E
+         */
+        public static final int MESSAGE_HEAD = -16843138;
+    }
 }

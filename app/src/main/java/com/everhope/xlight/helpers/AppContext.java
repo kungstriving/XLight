@@ -1,4 +1,4 @@
-package com.everhope.xlight.app;
+package com.everhope.xlight.helpers;
 
 import com.everhope.xlight.constants.ConnectGateMode;
 import com.everhope.xlight.constants.ConnectGateStatus;

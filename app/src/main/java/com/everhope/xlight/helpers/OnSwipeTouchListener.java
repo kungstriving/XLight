@@ -1,4 +1,4 @@
-package com.everhope.xlight.app;
+package com.everhope.xlight.helpers;
 
 import android.content.Context;
 import android.view.GestureDetector;

@@ -1,9 +1,11 @@
-package com.everhope.xlight;
+package com.everhope.xlight.activities;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import com.everhope.xlight.R;
 
 
 public class APSetupActivity extends ActionBarActivity {

@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.everhope.xlight" >
 
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".XLightApplication"
         android:allowBackup="true"
@@ -9,16 +13,16 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".MainActivity"
+            android:name=".activities.MainActivity"
             android:label="@string/app_name" >
         </activity>
         <activity
             android:name=".TestLight"
             android:label="@string/title_activity_test_light"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".activities.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.everhope.xlight.MainActivity" />
+                android:value=".activities.MainActivity" />
         </activity>
 
         <service
@@ -31,15 +35,15 @@
         </service>
 
         <activity
-            android:name=".APSetupActivity"
+            android:name=".activities.APSetupActivity"
             android:label="@string/title_activity_apsetup"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".activities.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.everhope.xlight.MainActivity" />
+                android:value=".activities.MainActivity" />
         </activity>
         <activity
-            android:name=".LoadActivity"
+            android:name=".activities.LoadActivity"
             android:label="XLight" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -47,6 +51,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".comm.TCPReceiveIntentService"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>
