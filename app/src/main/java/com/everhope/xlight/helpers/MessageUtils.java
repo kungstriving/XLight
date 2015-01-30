@@ -28,6 +28,7 @@ public class MessageUtils {
     public static byte[] composeServiceDiscoverMsg() {
 
         ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg();
+        serviceDiscoverMsg.buildUpSkeleton();
         return serviceDiscoverMsg.toMessageByteArray();
 
         /*
@@ -41,20 +42,9 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
 //        return bytes;
     }
 
-    /**
-     * 返回null出错
-     * @param stringBytes
-     * @return
-     */
-    private static byte[] getByteArrayFromString(String stringBytes) {
-        try {
-            return Hex.decodeHex(stringBytes.toCharArray());
-        } catch (DecoderException e) {
-            e.printStackTrace();
-            Log.w(TAG, e.getMessage());
-        }
-
-        return null;
+    public static ServiceDiscoverMsg decomposeServiceDiscoverMsg(byte[] data, int count) {
+        ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg(data);
+        return serviceDiscoverMsg;
     }
 
     public static byte[] composeLogonMsg(String clientID) {
@@ -70,5 +60,23 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
     public static short getRandomMessageID() {
         //0~3000 作为随机ID
         return (short)RandomUtils.nextInt(3000);
+    }
+
+    //////////////////////////////////// 测试工具方法 /////////////////////////////////
+
+    /**
+     * 返回null出错
+     * @param stringBytes
+     * @return
+     */
+    private static byte[] getByteArrayFromString(String stringBytes) {
+        try {
+            return Hex.decodeHex(stringBytes.toCharArray());
+        } catch (DecoderException e) {
+            e.printStackTrace();
+            Log.w(TAG, e.getMessage());
+        }
+
+        return null;
     }
 }

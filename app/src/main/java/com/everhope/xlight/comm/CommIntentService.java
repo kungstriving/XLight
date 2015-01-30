@@ -1,14 +1,15 @@
 package com.everhope.xlight.comm;
 
 import android.app.IntentService;
-import android.content.Intent;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.util.Log;
 
 import com.everhope.xlight.XLightApplication;
 import com.everhope.xlight.constants.Constants;
+import com.everhope.xlight.helpers.AppUtils;
 import com.everhope.xlight.helpers.MessageUtils;
 
 import java.io.IOException;
@@ -16,7 +17,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * 通信相关后台服务类
+ * 所有通信消息的发送线程
+ * 该对象只有一个线程，不会多线程发送。
  */
 public class CommIntentService extends IntentService {
     private static final String TAG = "CommIntentService@Light";
@@ -30,16 +32,35 @@ public class CommIntentService extends IntentService {
     private static final String ACTION_SERVICE_DISCOVER = "com.everhope.xlight.comm.action.servcie.discover";
 
     //传递参数
+    /**
+     * 消息接收器
+     */
     private static final String EXTRA_RESULTRECEIVER = "com.everhope.xlight.comm.extra.resultreceiver";
+    /**
+     * 网关地址对象
+     */
+    private static final String EXTRA_GATEADDR_PARAM = "com.everhope.xlight.comm.extra.gateaddr";
 
-    public static void startActionConnect(Context context, ResultReceiver receiver) {
+    /**
+     * 开始网络连接
+     *
+     * @param context
+     * @param address
+     * @param receiver
+     */
+    public static void startActionConnect(Context context, String address, ResultReceiver receiver) {
         Intent intent = new Intent(context, CommIntentService.class);
         intent.setAction(ACTION_CONNECT);
         intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+        intent.putExtra(EXTRA_GATEADDR_PARAM, address);
 
         context.startService(intent);
     }
 
+    /**
+     * 发送服务发现命令
+     * @param context
+     */
     public static void startActionServiceDiscover(Context context) {
         Intent intent = new Intent(context, CommIntentService.class);
         intent.setAction(ACTION_SERVICE_DISCOVER);
@@ -51,20 +72,29 @@ public class CommIntentService extends IntentService {
      * 启动网关侦测操作
      * @param context
      */
-    public static void startActionDetectGate(Context context) {
+    public static void startActionDetectGate(Context context, ResultReceiver receiver) {
         Intent intent = new Intent(context, CommIntentService.class);
         intent.setAction(ACTION_DETECT_GATE);
-
-        context.startService(intent);
-    }
-
-    public static void startActionRecData(Context context, ResultReceiver receiver) {
-        Intent intent = new Intent(context, CommIntentService.class);
-        intent.setAction(ACTION_REC_DATA);
         intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
 
         context.startService(intent);
     }
+
+    /**
+     * 启动UDP广播检测
+     * @param context
+     * @param receiver
+     */
+    public static void startActionBroadcastDetectGate(Context context, ResultReceiver receiver) {
+
+    }
+//    public static void startActionRecData(Context context, ResultReceiver receiver) {
+//        Intent intent = new Intent(context, CommIntentService.class);
+//        intent.setAction(ACTION_REC_DATA);
+//        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+//
+//        context.startService(intent);
+//    }
 
     public CommIntentService() {
         super("CommIntentService");
@@ -81,15 +111,17 @@ public class CommIntentService extends IntentService {
                     handleActionRecData(receiver);
                     break;
                 case ACTION_DETECT_GATE:
-                    handleActionDetectGate();
+                    //网关侦测
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionDetectGate(receiver);
                     break;
                 case ACTION_SERVICE_DISCOVER:
                     handleActionServiceDis();
                     break;
                 case ACTION_CONNECT:
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
-
-                    handleActionConnect(receiver);
+                    String address = intent.getStringExtra(EXTRA_GATEADDR_PARAM);
+                    handleActionConnect(address, receiver);
                     break;
                 default:
                     break;
@@ -98,16 +130,30 @@ public class CommIntentService extends IntentService {
         }
     }
 
-    private void handleActionConnect(ResultReceiver receiver) {
+    /**
+     * 进行网关连接
+     * @param receiver
+     */
+    private void handleActionConnect(String address, ResultReceiver receiver) {
         int resultCode = 0;
         Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
         try {
-            DataAgent.getSingleInstance().buildConnection("10.10.100.254", Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+            dataAgent.buildConnection(address, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+            //连接成功
+            Log.i(TAG, String.format("连接[%s]成功", address));
+            receiver.send(resultCode, resultData);
+            return;
         } catch (IOException e) {
             e.printStackTrace();
+            Log.w(TAG, e.getMessage());
         }
 
+        resultCode = Constants.COMMON.EC_NETWORK_CONNET_FAIL;
         receiver.send(resultCode, resultData);
+
+        return;
     }
 
     private void handleActionRecData(ResultReceiver receiver) {
@@ -127,7 +173,8 @@ public class CommIntentService extends IntentService {
             Log.e(TAG, e.getMessage());
             e.printStackTrace();
             //网络错误
-            receiver.send(Constants.COMMON.RESULT_CODE_NETWORK_ERROR, new Bundle());
+            receiver.send(Constants.COMMON.EC_NETWORK_ERROR, new Bundle());
+            return;
         } finally {
             try {
                 if (istream != null) {
@@ -153,36 +200,80 @@ public class CommIntentService extends IntentService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
     /**
-     * 检测网关服务
+     * TCP方式检测网关服务
      */
-    private void handleActionDetectGate() {
-        //目前未知UDP广播方式检测网关是否可用
+    private void handleActionDetectGate(ResultReceiver receiver) {
 
-        //使用TCP方式连接
-        for (int i = 0; i < 5; i++) {
-            Log.i(TAG, "检测中...");
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        String[] addresses = AppUtils.getSubnetAddresses(getApplicationContext());
+
+        for(int i = 0; i < addresses.length; i++) {
             try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                Log.i(TAG, String.format("尝试连接[%s]", addresses[i]));
+
+                dataAgent.buildConnection(addresses[i], Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+                //连接成功 接下来进行服务发现 如果服务发现成功，则获取到了网关地址
+                Log.i(TAG, String.format("[%s]连接成功，开始发现服务", addresses[i]));
+
+                final InputStream inputStream = dataAgent.getInputStream();
+                final String disKey = "discovered";
+                final String flag = "flag";
+                final Bundle tmpBundle = new Bundle();
+                tmpBundle.putBoolean(disKey, false);
+                tmpBundle.putBoolean(flag, false);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        byte[] bytes = new byte[1024];
+                        try {
+                            inputStream.read(bytes);
+                            Log.i(TAG, "服务发现成功");
+                            tmpBundle.putBoolean(disKey, true);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            tmpBundle.putBoolean(disKey, false);
+                        }
+                        tmpBundle.putBoolean(flag, true);
+                    }
+                }).start();
+
+                OutputStream outputStream = dataAgent.getOutputStream();
+                outputStream.write(MessageUtils.composeServiceDiscoverMsg());
+                outputStream.flush();
+
+                while(true) {
+                    if (tmpBundle.getBoolean(flag)) {
+                        //接收消息结束
+                        if (tmpBundle.getBoolean(disKey)) {
+                            //收到回应消息
+                            //说明找到了网关
+                            Log.i(TAG, "返回上层调用者");
+                            resultCode = 0;
+                            resultData.putString(Constants.KEYS_PARAMS.GATE_STA_IP, addresses[i]);
+                            receiver.send(resultCode, resultData);
+                            return;
+                        }
+                        break;
+                    }
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (IOException e) {
+                Log.w(TAG, String.format("连接地址[%s]失败", addresses[i]));
             }
         }
-//        final Handler handler = new Handler();
-//        final int count = 0;
-//        handler.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.i(TAG, "detecting...");
-//                if (count < 5) {
-//                    handler.postDelayed(this, 2000);
-//                } else {
-//                    handler.removeCallbacks(this);
-//                }
-//            }
-//        }, 2000);
 
+        //未找到网关
+        resultCode = Constants.COMMON.EC_NETWORK_NOFOUND_STA_GATE;
+        receiver.send(resultCode, resultData);
+        return;
     }
 }

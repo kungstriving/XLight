@@ -13,7 +13,20 @@ public class Constants {
          */
         public static final int RESULT_CODE_OK = 0;
 
-        public static final int RESULT_CODE_NETWORK_ERROR = 1000;
+        /**
+         * 网络错误
+         */
+        public static final int EC_NETWORK_ERROR = 1000;
+
+        /**
+         * 未找到sta地址 1001
+         */
+        public static final int EC_NETWORK_NOFOUND_STA_GATE = 1001;
+
+        /**
+         * 网关连接失败 1002
+         */
+        public static final int EC_NETWORK_CONNET_FAIL = 1002;
     }
     /**
      * 系统设置
@@ -48,6 +61,11 @@ public class Constants {
          * 读取数据超时8秒
          */
         public static final int NETWORK_DATA_SOTIMEOUT = 8000;
+
+        /**
+         * 建立连接超时
+         */
+        public static final int NETWORK_CONNECT_TIMEOUT = 16*1000;
     }
 
     /**
@@ -75,9 +93,15 @@ public class Constants {
      */
     public static class MESSAGES_CONSTS {
         /**
-         * 消息报文头
-         * 0xFE  0xFE  0xFE  0x7E
+         * 消息报文头1
+         * 0xFE  0xFE
          */
-        public static final int MESSAGE_HEAD = -16843138;
+        public static final short MESSAGE_HEAD_1 = -258;
+
+        /**
+         * 消息报文头2
+         * 0xFE 0x7E
+         */
+        public static final short MESSAGE_HEAD_2 = 32510;
     }
 }

@@ -17,8 +17,10 @@
 
     <string-array name="left_nav_items">
         <item>我的家</item>
-        <item>灯</item>
         <item>场景</item>
+        <item>灯</item>
+        <item>开关</item>
+        <item>遥控</item>
         <item>设置</item>
     </string-array>
 
@@ -170,7 +172,10 @@
     <color name="darkblue">#00008B</color> <!-- 暗蓝色 -->
     <color name="navy">#000080</color> <!-- 海军色 -->
     <color name="black">#000000</color> <!-- 黑色 -->
+
     <string name="fragment_scene">场景</string>
     <string name="fragment_light">我的灯</string>
     <string name="fragment_settings">设置</string>
+    <string name="title_activity_scene_edit">场景编辑</string>
+    <string name="action_sceneedit_save">保存</string>
 </resources>

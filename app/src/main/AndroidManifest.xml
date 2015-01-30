@@ -56,6 +56,14 @@
             android:name=".comm.TCPReceiveIntentService"
             android:exported="false" >
         </service>
+
+        <activity
+            android:name=".activities.SceneEditActivity"
+            android:label="@string/title_activity_scene_edit" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".activities.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

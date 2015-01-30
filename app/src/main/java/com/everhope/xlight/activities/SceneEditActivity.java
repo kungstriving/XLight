@@ -7,21 +7,25 @@ import android.view.MenuItem;
 
 import com.everhope.xlight.R;
 
-
-public class APSetupActivity extends ActionBarActivity {
+/**
+ * 场景编辑Activity
+ */
+public class SceneEditActivity extends ActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_apsetup);
-        //开始连接AP网关
+        setContentView(R.layout.activity_scene_edit);
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
     }
 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_apsetup, menu);
+        getMenuInflater().inflate(R.menu.menu_scene_edit, menu);
         return true;
     }
 
@@ -32,11 +36,13 @@ public class APSetupActivity extends ActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch(id) {
+            case R.id.home:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
 
-        return super.onOptionsItemSelected(item);
     }
 }

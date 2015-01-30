@@ -5,15 +5,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.ResultReceiver;
+import android.util.Log;
 
 import com.everhope.xlight.XLightApplication;
 import com.everhope.xlight.constants.Constants;
+
+import org.apache.commons.lang.ArrayUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 /**
- *
+ * 所有消息发送的接收线程
+ * 单线程操作
  */
 public class TCPReceiveIntentService extends IntentService {
 
@@ -52,9 +56,11 @@ public class TCPReceiveIntentService extends IntentService {
         if (intent != null) {
             final String action = intent.getAction();
             if (ACTION_LISTEN_TCP_DETECTGATE_BACK.equals(action)) {
+                //监听网关侦测回应消息
                 ResultReceiver receiver = intent.getParcelableExtra(EXTRA_TCP_BACK_RECEIVER);
                 handleActionListenBack(receiver);
             } else if (ACTION_LISTEN_TCP_SERVICEDISCOVER_BACK.equals(action)) {
+                //监听服务发现回应消息
                 ResultReceiver receiver = intent.getParcelableExtra(EXTRA_TCP_BACK_RECEIVER);
                 handleActionServiceDisBack(receiver);
             }
@@ -68,22 +74,39 @@ public class TCPReceiveIntentService extends IntentService {
         InputStream is = XLightApplication.getInstance().getDataAgent().getInputStream();
         byte[] bytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
         try {
-            is.read(bytes);
+            int readedNum = is.read(bytes);
             resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, bytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
         } catch (IOException e) {
             e.printStackTrace();
+            Log.w(TAG, e.getMessage());
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
         }
         receiver.send(resultCode, resultData);
     }
+
     /**
-     * Handle action Foo in the provided background thread with the provided
-     * parameters.
+     * 监听网络回应
+     * @param receiver
      */
     private void handleActionListenBack(ResultReceiver receiver) {
         //开始监听接收数据
         int resultCode = 0;
         Bundle resultData = new Bundle();
 
+        InputStream inputStream = XLightApplication.getInstance().getDataAgent().getInputStream();
+        byte[] bytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+        byte[] readedBytes;
+        try {
+            int readedNum = inputStream.read(bytes);
+            readedBytes = ArrayUtils.subarray(bytes, 0, readedNum);
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, e.getMessage());
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
         receiver.send(resultCode, resultData);
     }
 

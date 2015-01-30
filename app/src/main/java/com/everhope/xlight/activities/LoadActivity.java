@@ -1,33 +1,32 @@
 package com.everhope.xlight.activities;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.DhcpInfo;
-import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.everhope.xlight.R;
 import com.everhope.xlight.XLightApplication;
-import com.everhope.xlight.helpers.AppUtils;
 import com.everhope.xlight.comm.DataAgent;
 import com.everhope.xlight.comm.LogonResponseMsg;
-import com.everhope.xlight.helpers.MessageUtils;
 import com.everhope.xlight.constants.Constants;
 import com.everhope.xlight.constants.LogonRespStatus;
+import com.everhope.xlight.helpers.AppUtils;
+import com.everhope.xlight.helpers.MessageUtils;
+import com.everhope.xlight.models.ServiceDiscoverMsg;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.net.util.SubnetUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * loading页面 该页面为系统启动第一个画面
@@ -48,113 +47,148 @@ public class LoadActivity extends ActionBarActivity {
         setContentView(R.layout.activity_load);
 
         getSupportActionBar().hide();
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
-        connectToGate();
-        //模拟5秒钟后进入新画面
-//        final Handler handler = new Handler();
-//        handler.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                //删除splash view 停止loading
-//                progressBar.setVisibility(ProgressBar.INVISIBLE);
-//                //显示actionbar
-//                getSupportActionBar().show();
-//                handler.removeCallbacks(this);
-//
-//                Intent intent = new Intent(LoadActivity.this, MainActivity.class);
-//                startActivity(intent);
-//            }
-//        }, 5000);
-    }
+        progressBar = (ProgressBar) findViewById(R.id.load_progressBar);
+        progressBar.setVisibility(ProgressBar.VISIBLE);
 
-    private void testSubnet() {
-        WifiManager wifii = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        DhcpInfo d = wifii.getDhcpInfo();
-
-//        String s_dns1="DNS 1: "+String.valueOf(d.dns1);
-//        String s_dns2="DNS 2: "+String.valueOf(d.dns2);
-        String s_gateway = intToIp(d.gateway);
-        String s_ipAddress = intToIp(d.ipAddress);
-//        String s_leaseDuration="Lease Time: "+String.valueOf(d.leaseDuration);
-        String s_netmask = intToIp(d.netmask);
-        String s_serverAddress = intToIp(d.serverAddress);
-
-        //dispaly them
-        Log.i(TAG,
-                "Network Info\n" + "getway" + s_gateway + "\n" + "netmask" + s_netmask + "\n"
-                        + "server " + s_serverAddress + "\n" + "ip " + s_ipAddress);
-
-//        SubnetUtils subnetUtils = new SubnetUtils(s_gateway, s_netmask);
-        SubnetUtils subnetUtils = new SubnetUtils(s_ipAddress, s_netmask);
-        String[] allips = subnetUtils.getInfo().getAllAddresses();
-        for (int i = 0; i < allips.length; i++) {
-            Log.i(TAG, String.format("Net ip got %s", allips[i]));
-        }
+//        connectAndLoginToGate();
+        connectToGateAP();
+//        fakeLoading();
     }
 
     /**
-     * 连接到网关
+     * 直接通过AP网络连接和登录
      */
-    private void connectToGate() {
+    private void connectToGateAP() {
+        final DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+
+        final Handler handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                final TextView infoView = (TextView)findViewById(R.id.load_info);
+                String info = "";
+                switch (msg.what) {
+                    case 0:
+                        info = "网关已连接";
+                        //服务发现
+                        dataAgent.serviceDiscover(LoadActivity.this, new ResultReceiver(new Handler()) {
+                            @Override
+                            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                                if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                                    //读到了回应消息
+                                    byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                                    //解析回应消息
+                                    ServiceDiscoverMsg serviceDiscoverMsg = MessageUtils.decomposeServiceDiscoverMsg(msgBytes, msgBytes.length);
+                                    Log.i(TAG, "服务发现回应消息 " + serviceDiscoverMsg.toString());
+                                    //登录网关
+                                    logonToGate(Constants.SYSTEM_SETTINGS.GATE_AP_IP);
+
+                                } else {
+                                    //出错
+                                    infoView.setText("网关未找到");
+                                }
+                            }
+                        });
+
+                        break;
+                    case -1:
+                        info = "网关连接失败";
+                        infoView.setText(info);
+                    default:
+                        break;
+                }
+
+            }
+        };
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    dataAgent.buildConnection(Constants.SYSTEM_SETTINGS.GATE_AP_IP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+                    handler.sendEmptyMessage(0);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+                    handler.sendEmptyMessage(-1);
+                    return;
+                }
+
+            }
+        }).start();
+    }
+
+    /**
+     * 模拟5秒钟后进入画面
+     */
+    private void fakeLoading() {
+        //模拟5秒钟后进入新画面
+        final Handler handler = new Handler();
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                //删除splash view 停止loading
+                progressBar.setVisibility(ProgressBar.INVISIBLE);
+                //显示actionbar
+                getSupportActionBar().show();
+                handler.removeCallbacks(this);
+
+                Intent intent = new Intent(LoadActivity.this, MainActivity.class);
+                startActivity(intent);
+            }
+        }, 5000);
+    }
+
+    /**
+     * 连接到网关并登录
+     */
+    private void connectAndLoginToGate() {
 
         Log.i(TAG, "连接到网关");
 
-        //使用STA地址连接
+        //获取存储的sta地址
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         final String gateIP = pref.getString(Constants.SYSTEM_SETTINGS.GATE_STA_IP, "");
         if (StringUtils.isEmpty(gateIP)) {
             Log.w(TAG, "网关STA地址为空");
-            //网关地址为空 则局域网内广播测试连接消息
+            //网关地址为空 则在当前局域网内逐个连接测试
             XLightApplication lightApp = XLightApplication.getInstance();
-
             DataAgent dataAgent = lightApp.getDataAgent();
 
             Log.i(TAG, "开始搜寻网关");
-            Toast.makeText(LoadActivity.this, "开始搜寻网关", Toast.LENGTH_SHORT).show();
+            final TextView textView = (TextView)findViewById(R.id.load_info);
+            textView.setText("搜寻网关");
+
             dataAgent.detectGateInLan(this, new ResultReceiver(new Handler()) {
                 @Override
                 protected void onReceiveResult(int resultCode, Bundle resultData) {
                     if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                         //获取到了网关STA地址
-//                        String gateStaIP = resultData.getString(Constants.KEYS_PARAMS.GATE_STA_IP);
-                        String gateStaIP = resultData.getString(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
-                        Log.i(TAG, "获取到了网关地址");
-                        //Log.i(TAG, gateStaIP);
-                        //Toast.makeText(LoadActivity.this, gateStaIP, Toast.LENGTH_LONG).show();
-                        //测试直接使用AP网络
-                        String gateAPIP = Constants.SYSTEM_SETTINGS.GATE_AP_IP;
-
-                        //服务发现
-                        testConnection();
-//                        logonToGate(gateAPIP);
+                        String gateStaIP = resultData.getString(Constants.KEYS_PARAMS.GATE_STA_IP);
+                        Log.i(TAG, String.format("获取到了网关地址[%s]", gateStaIP));
+                        textView.setText(String.format("网关地址[%s]", gateStaIP));
+                        //登录到网关
+//                        logonToGate(gateStaIP);
 
                     } else {
                         //未获取到网关STA地址
+                        Toast.makeText(LoadActivity.this, "未获取到网关地址", Toast.LENGTH_SHORT).show();
                         //关闭loading 进入AP网络设置界面
                         if (progressBar.isShown()) {
                             progressBar.setVisibility(ProgressBar.INVISIBLE);
                         }
                         //连接AP网络
                         switchToAPNetwork();
-                        Intent intent = new Intent(LoadActivity.this, APSetupActivity.class);
-                        startActivity(intent);
+
                     }
                 }
             });
+        } else {
+            //如果存在sta地址 则直连
+            Toast.makeText(LoadActivity.this, "直连STA", Toast.LENGTH_LONG).show();
         }
-        //  判断STA地址是否存在
-
-        //  STA地址不存在 全网广播 8899端口
-
-        //      有回应，则使用回应地址，更新STA地址，然后再使用STA地址连接
-
-        //      无回应，则连接到网关AP网络（10.10.100.254）
-        //
-
-        //  STA地址存在，直接建立socket
     }
-
+/*
     private void testConnection() {
         final DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
 
@@ -208,30 +242,23 @@ public class LoadActivity extends ActionBarActivity {
 
 
     }
-
+*/
     /**
-     * 根据sta地址登录网关
+     * 登录网关
      *
-     * @param gateStaIP
+     * @param gateStaIP 所有登录网关地址
      */
     private void logonToGate(String gateStaIP) {
 
+        /*
+                                            Intent intent = new Intent(LoadActivity.this, MainActivity.class);
+                                    startActivity(intent);
+         */
         DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
-        //建立连接
-        try {
-            dataAgent.buildConnection(gateStaIP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.w(TAG, e.getMessage());
-            //显示错误消息
-            Toast.makeText(getApplicationContext(), "建立连接失败",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
 
         String clientID = AppUtils.getAndroidDeviceID();
 
-        dataAgent.logonToGate(clientID, getApplicationContext(), new ResultReceiver(new Handler()) {
+        dataAgent.logonToGate(clientID, this, new ResultReceiver(new Handler()) {
             @Override
             protected void onReceiveResult(int resultCode, Bundle resultData) {
                 //接收到登录回调
@@ -260,14 +287,14 @@ public class LoadActivity extends ActionBarActivity {
         editor.commit();
     }
 
+    /**
+     * 切换到AP网络
+     * 首先还是进行连接，连通之后进行服务发现（相当于握手）
+     * 打开AP设置页面
+     */
     private void switchToAPNetwork() {
-
+        Intent intent = new Intent(LoadActivity.this, APSetupActivity.class);
+        startActivity(intent);
     }
 
-    public String intToIp(int addr) {
-        return ((addr & 0xFF) + "." +
-                ((addr >>>= 8) & 0xFF) + "." +
-                ((addr >>>= 8) & 0xFF) + "." +
-                ((addr >>>= 8) & 0xFF));
-    }
 }

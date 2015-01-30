@@ -2,6 +2,16 @@ package com.everhope.xlight.models;
 
 import com.everhope.xlight.constants.Constants;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang.ArrayUtils;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * 移动端与网关通信报文格式基类
  * Created by kongxiaoyang on 2015/1/25.
@@ -9,10 +19,17 @@ import com.everhope.xlight.constants.Constants;
 public class Message {
 
     /**
-     * 报文头
-     * 报文帧头为0xFE  0xFE  0xFE  0x7E
+     * 报文头1
+     * 报文帧头为0xFE  0xFE
      */
-    private final int head = Constants.MESSAGES_CONSTS.MESSAGE_HEAD;
+    private final short head1 = Constants.MESSAGES_CONSTS.MESSAGE_HEAD_1;
+
+    /**
+     * 报文头2
+     * 0xFE 0x7E
+     */
+    private final short head2 = Constants.MESSAGES_CONSTS.MESSAGE_HEAD_2;
+
     /**
      * 整个数据包的长度，目前数据域最大长度是512字节，所以总包长度是512+16+2 =530字节
      *
@@ -123,10 +140,13 @@ public class Message {
      */
     private short crc;
 
-    public int getHead() {
-        return head;
+    public int getHead1() {
+        return head1;
     }
 
+    public int getHead2() {
+        return head2;
+    }
     public short getMessageLength() {
         return messageLength;
     }
@@ -231,11 +251,109 @@ public class Message {
         this.crc = crc;
     }
 
-    //TODO 将消息中的所有内容转换为字节数组 用于网络发送
+    /**
+     * 将消息内容转换为字节数组
+     *
+     * @return
+     */
     public byte[] toMessageByteArray() {
-        return null;
+
+        ByteBuffer bb = ByteBuffer.allocate(1024);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        //转换消息头
+        bb.putShort(head1);
+        bb.putShort(head2);
+        //报文长度
+        bb.putShort(messageLength);
+        //报文特征码
+        bb.putShort(messageSignature);
+        //报文序号
+        bb.putShort(messageID);
+        //转换报文属性域
+        short tempShort = getPropertiesRegion();
+        bb.putShort(tempShort);
+
+        //操作对象类型
+        bb.put(objectType);
+        //操作功能码
+        bb.put(functionCode);
+        //操作对象ID
+        bb.putShort(objectID);
+
+        //数据域
+        bb.put(data);
+
+        //CRC
+        bb.putShort(crc);
+
+        int size = bb.position();
+        bb.flip();
+
+        byte[] bytes = new byte[size];
+        bb.get(bytes);
+
+        return bytes;
     }
 
+    public void setPropertiesRegion(short props) {
+        short temp = 0;
+        temp = (short)(props & 0x8000);
+        if (temp == 0) {
+            appToGate = false;
+        } else {
+            appToGate = true;
+        }
+
+        temp = (short)(props & 0x4000);
+        if (temp == 0) {
+            ack = false;
+        } else {
+            ack = true;
+        }
+
+        temp = (short)(props & 0x2000);
+        if (temp == 0) {
+            sliceError = false;
+        } else {
+            sliceError = true;
+        }
+
+        temp = (short)(props & 0x1000);
+        if (temp == 0) {
+            sliceMore = false;
+        } else {
+            sliceMore = true;
+        }
+
+        temp = (short)(props & 0x0fff);
+        sliceMessageID = temp;
+    }
+
+    /**
+     * 获取当前消息的属性域
+     * @return
+     */
+    private short getPropertiesRegion() {
+        byte[] props = new byte[2];
+        short first = 0x0;
+//        short sliceSeq = 0;
+
+        if (appToGate) {
+            first = (short)(0x8000 | first);
+        }
+        if (ack) {
+            first = (short)(0x4000 | first);
+        }
+        if (sliceError) {
+            first = (short)(0x2000 | first);
+        }
+        if (sliceMore) {
+            first = (short)(0x1000 | first);
+        }
+        short s1 = (short)(sliceMessageID | first);
+
+        return s1;
+    }
 
     /*************************** 参考 **************************/
     /**

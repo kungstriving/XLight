@@ -18,6 +18,7 @@
         android:layout_gravity="center_vertical"
         android:layout_weight="8"/>
     <ImageView
+        android:id="@+id/scene_control_edit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"

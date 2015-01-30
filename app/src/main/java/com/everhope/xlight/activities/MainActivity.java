@@ -160,16 +160,24 @@ public class MainActivity extends ActionBarActivity {
 //                fragment.setArguments(args);
                 break;
             case 1:
-                //打开灯
-                fragment = LightFragment.newInstance("我的灯");
-                Toast.makeText(MainActivity.this, "进入灯配置", Toast.LENGTH_LONG).show();
-                break;
-            case 2:
                 //打开场景
                 fragment = SceneFragment.newInstance("场景");
                 Toast.makeText(MainActivity.this, "进入场景配置", Toast.LENGTH_LONG).show();
                 break;
+            case 2:
+                //打开灯
+                fragment = LightFragment.newInstance("我的灯");
+                Toast.makeText(MainActivity.this, "进入灯配置", Toast.LENGTH_LONG).show();
+                break;
             case 3:
+                //开关配置
+                Toast.makeText(MainActivity.this, "开关配置敬请期待",Toast.LENGTH_LONG).show();
+                break;
+            case 4:
+                //遥控配置
+                Toast.makeText(MainActivity.this, "遥控配置敬请期待",Toast.LENGTH_LONG).show();
+                break;
+            case 5:
                 //打开设置
                 fragment = SettingsFragment.newInstance("设置");
                 Toast.makeText(MainActivity.this, "进入设置", Toast.LENGTH_LONG).show();
@@ -183,14 +191,17 @@ public class MainActivity extends ActionBarActivity {
 
         // Insert the fragment by replacing any existing fragment
 
-        fragmentManager.beginTransaction()
-                .replace(R.id.content_frame, fragment)
-                .commit();
+        if (fragment != null) {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.content_frame, fragment)
+                    .commit();
 
-        // Highlight the selected item, update the title, and close the drawer
-        leftListView.setItemChecked(position, true);
-        setTitle(leftItems[position]);
-        this.currentSelectFrag = position;
+            // Highlight the selected item, update the title, and close the drawer
+            leftListView.setItemChecked(position, true);
+            setTitle(leftItems[position]);
+            this.currentSelectFrag = position;
+        }
+
 //        invalidateOptionsMenu();        //刷新menu
         drawerLayout.closeDrawer(leftListView);
     }

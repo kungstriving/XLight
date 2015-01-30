@@ -2,6 +2,7 @@ package com.everhope.xlight.fragments;
 
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -18,8 +19,10 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.everhope.xlight.R;
+import com.everhope.xlight.activities.SceneEditActivity;
 
 /**
  * 主页fragment
@@ -77,11 +80,15 @@ public class HomeFragment extends Fragment{
             scenePane.setOrientation(LinearLayout.VERTICAL);
 
             ImageView sceneImg = new ImageView(getActivity());
-            sceneImg.setImageResource(R.drawable.ic_launcher);
+            if (i == 0) {
+                sceneImg.setImageResource(R.drawable.sunset);
+            } else {
+                sceneImg.setImageResource(R.drawable.ic_launcher);
+            }
             sceneImg.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    PopupWindow popup = new PopupWindow(getActivity());
+                    final PopupWindow popup = new PopupWindow(getActivity());
                     View layout = getActivity().getLayoutInflater().inflate(R.layout.popup_scene_control, null);
                     popup.setContentView(layout);
                     // Set content width and height
@@ -94,6 +101,18 @@ public class HomeFragment extends Fragment{
                     // Show anchored to button
                     popup.setBackgroundDrawable(new BitmapDrawable());
                     popup.showAsDropDown(v);
+
+                    layout.findViewById(R.id.scene_control_edit).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            popup.dismiss();
+                            Toast.makeText(getActivity(), "edit", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getActivity(), SceneEditActivity.class);
+                            intent.putExtra("scene_id", "0");
+                            startActivity(intent);
+                        }
+                    });
+
 //                    popup.showAsDropDown(v,0, -300);
                 }
             });
