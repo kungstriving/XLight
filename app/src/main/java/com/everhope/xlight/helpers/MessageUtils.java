@@ -3,8 +3,8 @@ package com.everhope.xlight.helpers;
 import android.util.Log;
 
 import com.everhope.xlight.comm.LogonResponseMsg;
-import com.everhope.xlight.constants.Constants;
-import com.everhope.xlight.models.Message;
+import com.everhope.xlight.models.ClientLoginMsg;
+import com.everhope.xlight.models.ClientLoginMsgResponse;
 import com.everhope.xlight.models.ServiceDiscoverMsg;
 
 import org.apache.commons.codec.DecoderException;
@@ -28,7 +28,8 @@ public class MessageUtils {
     public static byte[] composeServiceDiscoverMsg() {
 
         ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg();
-        serviceDiscoverMsg.buildUpSkeleton();
+        serviceDiscoverMsg.buildUp();
+        Log.i(TAG, String.format("服务发现发送消息 [%s]", serviceDiscoverMsg.toString()));
         return serviceDiscoverMsg.toMessageByteArray();
 
         /*
@@ -47,13 +48,16 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         return serviceDiscoverMsg;
     }
 
-    public static byte[] composeLogonMsg(String clientID) {
-        byte[] bytes = new byte[1024];
-        return bytes;
+    public static ClientLoginMsg composeLogonMsg(String clientID) {
+        ClientLoginMsg clientLoginMsg = new ClientLoginMsg();
+        clientLoginMsg.setClientID(clientID);
+        clientLoginMsg.buildUp();
+        return clientLoginMsg;
     }
 
-    public static LogonResponseMsg decomposeLogonReturnMsg(byte[] data, int count) {
-        return new LogonResponseMsg();
+    public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count) {
+        ClientLoginMsgResponse clientLoginMsgResponse = new ClientLoginMsgResponse(data);
+        return clientLoginMsgResponse;
     }
 
     ////////////////////////////////////// 通用方法 ////////////////////////////////////

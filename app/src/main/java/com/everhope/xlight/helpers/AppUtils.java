@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.everhope.xlight.XLightApplication;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.net.util.SubnetUtils;
 
 /**
@@ -25,7 +26,8 @@ public class AppUtils {
         WifiManager wifiMan = (WifiManager) XLightApplication.getInstance().getSystemService(
                 Context.WIFI_SERVICE);
         WifiInfo wifiInf = wifiMan.getConnectionInfo();
-        return wifiInf.getMacAddress();
+        String mac = wifiInf.getMacAddress();
+        return StringUtils.remove(mac, ':');
     }
 
     /**

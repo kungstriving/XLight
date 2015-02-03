@@ -59,7 +59,7 @@ public class ServiceDiscoverMsg extends Message{
         setCrc(crc);
     }
 
-    public void buildUpSkeleton() {
+    public void buildUp() {
         short sign = 0;
         setMessageSignature(sign);
         setMessageID(MessageUtils.getRandomMessageID());
@@ -85,11 +85,5 @@ public class ServiceDiscoverMsg extends Message{
 
         short length = 34;
         setMessageLength(length);
-    }
-
-    @Override
-    public String toString() {
-        Gson gson = new Gson();
-        return gson.toJson(this);
     }
 }

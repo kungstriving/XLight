@@ -11,6 +11,10 @@ import com.everhope.xlight.XLightApplication;
 import com.everhope.xlight.constants.Constants;
 import com.everhope.xlight.helpers.AppUtils;
 import com.everhope.xlight.helpers.MessageUtils;
+import com.everhope.xlight.models.ClientLoginMsg;
+
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,10 +32,13 @@ public class CommIntentService extends IntentService {
      * 检测网关IP
      */
     private static final String ACTION_DETECT_GATE = "com.everhope.xlight.comm.action.detect.gate";
-    private static final String ACTION_REC_DATA = "com.everhope.xlight.comm.action.rec.data";
     private static final String ACTION_SERVICE_DISCOVER = "com.everhope.xlight.comm.action.servcie.discover";
+    /**
+     * 登录到网关
+     */
+    private static final String ACTION_LOGIN_GATE = "com.everhope.xlight.comm.action.login.gate";
 
-    //传递参数
+    //////////////////////// 传递参数 ///////////////////////////////////////
     /**
      * 消息接收器
      */
@@ -41,6 +48,12 @@ public class CommIntentService extends IntentService {
      */
     private static final String EXTRA_GATEADDR_PARAM = "com.everhope.xlight.comm.extra.gateaddr";
 
+    /**
+     * APP端唯一标示
+     */
+    private static final String EXTRA_CLIENTID = "com.everhope.xlight.comm.extra.clientid";
+
+    /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
     /**
      * 开始网络连接
      *
@@ -69,6 +82,22 @@ public class CommIntentService extends IntentService {
     }
 
     /**
+     * 启动网关登录服务
+     *
+     * @param context
+     * @param clientID
+     */
+    public static void startActionLoginToGate(Context context, ResultReceiver receiver, String clientID) {
+
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_LOGIN_GATE);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+        intent.putExtra(EXTRA_CLIENTID, clientID);
+
+        context.startService(intent);
+    }
+
+    /**
      * 启动网关侦测操作
      * @param context
      */
@@ -82,6 +111,7 @@ public class CommIntentService extends IntentService {
 
     /**
      * 启动UDP广播检测
+     * TODO 暂不确定网关是否支持 未实现
      * @param context
      * @param receiver
      */
@@ -100,15 +130,18 @@ public class CommIntentService extends IntentService {
         super("CommIntentService");
     }
 
+    ////////////////////////////////////////////// 服务分发 //////////////////////////////////////
     @Override
     protected void onHandleIntent(Intent intent) {
         ResultReceiver receiver = null;
         if (intent != null) {
             final String action = intent.getAction();
             switch (action) {
-                case ACTION_REC_DATA:
+                case ACTION_LOGIN_GATE:
+                    //登录网关
+                    String clientID = intent.getStringExtra(EXTRA_CLIENTID);
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
-                    handleActionRecData(receiver);
+                    handleActionLoginToGate(clientID, receiver);
                     break;
                 case ACTION_DETECT_GATE:
                     //网关侦测
@@ -128,6 +161,39 @@ public class CommIntentService extends IntentService {
             }
 
         }
+    }
+
+    private void handleActionLoginToGate(String clientID, ResultReceiver receiver) {
+
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+        ClientLoginMsg loginMsg = MessageUtils.composeLogonMsg(clientID);
+
+        Log.i(TAG, String.format("登录网关发送消息 [%s]", loginMsg.toString()));
+
+        byte[] bytes = loginMsg.toMessageByteArray();
+        short msgID = loginMsg.getMessageID();
+        try {
+            os.write(bytes);
+            os.flush();
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+        }
+
+        receiver.send(resultCode, resultData);
     }
 
     /**
@@ -156,37 +222,37 @@ public class CommIntentService extends IntentService {
         return;
     }
 
-    private void handleActionRecData(ResultReceiver receiver) {
-        InputStream istream = DataAgent.getSingleInstance().getInputStream();
-        Bundle bundle = new Bundle();
-
-        byte[] dataBuf = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
-        try {
-            int actualReadedBytes = istream.read(dataBuf);
-
-            bundle.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, actualReadedBytes);
-            bundle.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, dataBuf);
-
-            receiver.send(Constants.COMMON.RESULT_CODE_OK, bundle);
-        } catch (IOException e) {
-            Log.e(TAG, "读取数据出错");
-            Log.e(TAG, e.getMessage());
-            e.printStackTrace();
-            //网络错误
-            receiver.send(Constants.COMMON.EC_NETWORK_ERROR, new Bundle());
-            return;
-        } finally {
-            try {
-                if (istream != null) {
-                    istream.close();
-                }
-            } catch (IOException e) {
-                Log.e(TAG, "关闭输入流出错");
-                Log.e(TAG, e.getMessage());
-            }
-        }
-
-    }
+//    private void handleActionRecData(ResultReceiver receiver) {
+//        InputStream istream = DataAgent.getSingleInstance().getInputStream();
+//        Bundle bundle = new Bundle();
+//
+//        byte[] dataBuf = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+//        try {
+//            int actualReadedBytes = istream.read(dataBuf);
+//
+//            bundle.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, actualReadedBytes);
+//            bundle.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, dataBuf);
+//
+//            receiver.send(Constants.COMMON.RESULT_CODE_OK, bundle);
+//        } catch (IOException e) {
+//            Log.e(TAG, "读取数据出错");
+//            Log.e(TAG, e.getMessage());
+//            e.printStackTrace();
+//            //网络错误
+//            receiver.send(Constants.COMMON.EC_NETWORK_ERROR, new Bundle());
+//            return;
+//        } finally {
+//            try {
+//                if (istream != null) {
+//                    istream.close();
+//                }
+//            } catch (IOException e) {
+//                Log.e(TAG, "关闭输入流出错");
+//                Log.e(TAG, e.getMessage());
+//            }
+//        }
+//
+//    }
 
     /**
      * 发送服务发现报文
@@ -199,6 +265,7 @@ public class CommIntentService extends IntentService {
             os.flush();
         } catch (IOException e) {
             e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
         }
     }
     /**

@@ -86,6 +86,11 @@ public class Constants {
          * 读到的字节内容
          */
         public static final String NETWORK_READED_BYTES_CONTENT = "kp_bytes_content";
+
+        /**
+         * 发送消息的随机id
+         */
+        public static final String MESSAGE_RANDOM_ID = "kp_msg_randid";
     }
 
     /**

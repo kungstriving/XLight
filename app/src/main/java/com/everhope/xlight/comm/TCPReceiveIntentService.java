@@ -22,7 +22,7 @@ import java.io.InputStream;
 public class TCPReceiveIntentService extends IntentService {
 
     private static final String TAG = "TCPReceiveIntentService@Light";
-    private static final String ACTION_LISTEN_TCP_DETECTGATE_BACK = "com.everhope.xlight.comm.action.tcp.detectgate.back";
+    private static final String ACTION_LISTEN_TCP_BACK = "com.everhope.xlight.comm.action.tcp.back";
     private static final String ACTION_LISTEN_TCP_SERVICEDISCOVER_BACK = "com.everhope.xlight.comm.action.tcp.servicediscover.back";
 
     private static final String EXTRA_TCP_BACK_RECEIVER = "com.everhope.xlight.comm.extra.tcp.detectgate.receiver";
@@ -35,7 +35,7 @@ public class TCPReceiveIntentService extends IntentService {
      */
     public static void startActionListenBack(Context context, ResultReceiver receiver) {
         Intent intent = new Intent(context, TCPReceiveIntentService.class);
-        intent.setAction(ACTION_LISTEN_TCP_DETECTGATE_BACK);
+        intent.setAction(ACTION_LISTEN_TCP_BACK);
         intent.putExtra(EXTRA_TCP_BACK_RECEIVER, receiver);
         context.startService(intent);
     }
@@ -55,8 +55,8 @@ public class TCPReceiveIntentService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
             final String action = intent.getAction();
-            if (ACTION_LISTEN_TCP_DETECTGATE_BACK.equals(action)) {
-                //监听网关侦测回应消息
+            if (ACTION_LISTEN_TCP_BACK.equals(action)) {
+                //监听网关回应消息
                 ResultReceiver receiver = intent.getParcelableExtra(EXTRA_TCP_BACK_RECEIVER);
                 handleActionListenBack(receiver);
             } else if (ACTION_LISTEN_TCP_SERVICEDISCOVER_BACK.equals(action)) {

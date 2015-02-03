@@ -9,6 +9,8 @@ import android.util.Log;
 import com.everhope.xlight.constants.Constants;
 import com.everhope.xlight.helpers.MessageUtils;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,6 +30,8 @@ public class DataAgent {
     private static DataAgent dataAgent = null;
 
     private Socket socket = null;
+    private String serverAddr = "";
+    private int serverPort = 0;
     private InputStream inputStream = null;
     private OutputStream outputStream = null;
 
@@ -65,37 +69,22 @@ public class DataAgent {
      * @param context 全局上下文
      * @param receiver 接收器
      */
-    public void logonToGate(String clientID, Context context, ResultReceiver receiver) {
-        //主线程中进行登录
-        if (this.socket.isConnected()) {
-            OutputStream ostream = null;
+    public void loginInGate(Context context, ResultReceiver receiver, String clientID) {
+//        TCPReceiveIntentService.startActionListenBack(context, receiver);
+        if (!isConnected()) {
             try {
-                //发送数据
-                ostream = this.socket.getOutputStream();
-                byte[] data = MessageUtils.composeLogonMsg(clientID);
-                ostream.write(data);
-                ostream.flush();
-
-                //接收数据
-//                CommIntentService.startActionRecData(context, receiver);
+                //TODO 当前网络重连 如果连接失败 应该跳转到设置页面 进行搜寻网关操作
+                reconnect();
             } catch (IOException e) {
-                Log.w(TAG, "获取输出流错误");
-                Log.w(TAG, e.getMessage());
-                //TODO 重连
-            } finally {
-                try {
-                    if (ostream != null) {
-                        ostream.flush();
-                        ostream.close();
-                    }
-                } catch (IOException e) {
-                    Log.w(TAG, "关闭输出流错误");
-                }
+                e.printStackTrace();
+                Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+
             }
+
         } else {
-            Log.w(TAG, "socket 连接断开");
-            //TODO 重连
+            CommIntentService.startActionLoginToGate(context, receiver, clientID);
         }
+
     }
 
     /**
@@ -112,10 +101,17 @@ public class DataAgent {
             socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
             inputStream = socket.getInputStream();
             outputStream = socket.getOutputStream();
+
+            this.serverAddr = serverHost;
+            this.serverPort = serverPort;
         } catch (IOException e) {
             //连接报错
             throw e;
         }
+    }
+
+    public void reconnect() throws IOException {
+        buildConnection(this.serverAddr, this.serverPort);
     }
 
     /**
