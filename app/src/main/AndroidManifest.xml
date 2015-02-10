@@ -1,49 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.everhope.xlight" >
+    package="com.everhope.elighte" >
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name=".XLightApplication"
+        android:name="com.everhope.elighte.XLightApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".activities.MainActivity"
+            android:name="com.everhope.elighte.activities.MainActivity"
             android:label="@string/app_name" >
         </activity>
         <activity
-            android:name=".TestLight"
+            android:name="com.everhope.elighte.TestLight"
             android:label="@string/title_activity_test_light"
-            android:parentActivityName=".activities.MainActivity" >
+            android:parentActivityName="com.everhope.elighte.activities.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.MainActivity" />
+                android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
 
         <service
-            android:name=".comm.CommIntentService"
+            android:name="com.everhope.elighte.comm.CommIntentService"
             android:exported="false" >
         </service>
         <service
-            android:name=".comm.UDPReceiveIntentService"
+            android:name="com.everhope.elighte.comm.UDPReceiveIntentService"
             android:exported="false" >
         </service>
 
         <activity
-            android:name=".activities.APSetupActivity"
+            android:name="com.everhope.elighte.activities.APSetupActivity"
             android:label="@string/title_activity_apsetup"
-            android:parentActivityName=".activities.MainActivity" >
+            android:parentActivityName="com.everhope.elighte.activities.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.MainActivity" />
+                android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
         <activity
-            android:name=".activities.LoadActivity"
+            android:name="com.everhope.elighte.activities.LoadActivity"
             android:label="XLight" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -53,17 +53,35 @@
         </activity>
 
         <service
-            android:name=".comm.TCPReceiveIntentService"
+            android:name="com.everhope.elighte.comm.TCPReceiveIntentService"
             android:exported="false" >
         </service>
 
         <activity
-            android:name=".activities.SceneEditActivity"
+            android:name="com.everhope.elighte.activities.SceneEditActivity"
             android:label="@string/title_activity_scene_edit" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.MainActivity" />
+                android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
+        <activity
+            android:name="com.everhope.elighte.activities.SettingsActivity"
+            android:label="@string/title_activity_settings" >
+        </activity>
+        <activity
+            android:name="com.everhope.elighte.activities.SearchGateActivity"
+            android:label="@string/title_activity_search_gate" >
+            <intent-filter>
+                <action android:name=".activities.SearchGateActivity"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
+        <meta-data android:name="AA_DB_NAME" android:value="elighte.db" />
+        <meta-data android:name="AA_DB_VERSION" android:value="1"/>
+        <meta-data android:name="AA_MODELS"
+            android:value="com.everhope.elighte.models.Scene,
+                        com.everhope.elighte.models.Light,
+                        com.everhope.elighte.models.LightScene"/>
     </application>
 
 </manifest>

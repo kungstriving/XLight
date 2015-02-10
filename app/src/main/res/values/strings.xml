@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">XLight</string>
+    <string name="app_name">E-Lighte</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_test_light">TestLight</string>
@@ -26,6 +26,7 @@
 
     <string name="title_activity_load">LoadActivity</string>
 
+    <color name="main_back">#303238</color>
     <color name="white">#FFFFFF</color> <!-- 白色 -->
     <color name="ivory">#FFFFF0</color> <!-- 象牙色 -->
     <color name="lightyellow">#FFFFE0</color> <!-- 亮黄色 -->
@@ -178,4 +179,7 @@
     <string name="fragment_settings">设置</string>
     <string name="title_activity_scene_edit">场景编辑</string>
     <string name="action_sceneedit_save">保存</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_search_gate">SearchGateActivity</string>
+
 </resources>

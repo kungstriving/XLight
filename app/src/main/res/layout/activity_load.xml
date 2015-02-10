@@ -4,7 +4,7 @@
     android:paddingRight="0dp"
     android:paddingTop="0dp"
     android:paddingBottom="0dp"
-    tools:context="com.everhope.xlight.activities.LoadActivity"
+    tools:context="com.everhope.elighte.activities.LoadActivity"
     android:padding="0dp">
 
     <ImageView
@@ -17,6 +17,13 @@
         android:scaleType="fitXY"
         android:contentDescription="loading" />
 
+    <ImageView
+        android:layout_width="150dp"
+        android:layout_height="195dp"
+        android:src="@drawable/logo"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="180dp"/>
     <ProgressBar
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
