@@ -3,6 +3,7 @@ package com.everhope.elighte.activities;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -29,6 +30,12 @@ import android.widget.RelativeLayout;
 
 import com.everhope.elighte.R;
 import com.everhope.elighte.helpers.AppUtils;
+import com.everhope.elighte.models.Light;
+import com.everhope.elighte.models.LightScene;
+import com.everhope.elighte.models.Scene;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 场景编辑Activity
@@ -47,10 +54,25 @@ public class SceneEditActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scene_edit);
 
+        //获取数据库存储场景信息
+        Intent intent = getIntent();
+        long sceneID = intent.getLongExtra("scene_id",-1);
+        if (sceneID != -1) {
+            //正常情况
+            Scene scene = Scene.load(Scene.class, sceneID);
+            List<LightScene> lightScenes = scene.lightScenes();
+            List<Light> lights = new ArrayList<>();
+            for (LightScene lightScene : lightScenes) {
+                lights.add(lightScene.light);
+            }
+        }
+        //设置顶部底色变化
         this.topIVHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                topIV.setBackgroundColor(msg.what);
+
+                int colorInt = msg.what;
+                topIV.setBackgroundColor(colorInt);
             }
         };
 
@@ -86,17 +108,6 @@ public class SceneEditActivity extends ActionBarActivity {
         ivLayoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
         rootRL.addView(imageView, ivLayoutParams);
 
-//        imageView.setOnDragListener(lightDragListener);
-//        imageView.setOnDragListener(new View.OnDragListener() {
-//            @Override
-//            public boolean onDrag(View v, DragEvent event) {
-//                int a = event.getAction();
-////                String t = event.getClipData().getItemAt(0).getText().toString();
-//                Toast.makeText(SceneEditActivity.this, a + "000", Toast.LENGTH_LONG).show();
-//                return false;
-//            }
-//        });
-
         //设置colorpicker
         final RelativeLayout colorPickerRL = new RelativeLayout(SceneEditActivity.this);
         colorPickerRL.setBackgroundDrawable(getResources().getDrawable(R.drawable.colorpicker));
@@ -105,31 +116,18 @@ public class SceneEditActivity extends ActionBarActivity {
         LightDragListener lightDragListener = new LightDragListener();
         colorPickerRL.setOnDragListener(lightDragListener);
         //计算图片缩放比率
-        this.scale = 1477 / widthPixels;        //1477为实际图片像素数
+        this.scale = 539 / (float)widthPixels;        //539为实际图片像素数
 
         //light handle
         final ImageView lightIV = new ImageView(SceneEditActivity.this);
         lightIV.setTag("light-handle");
         lightIV.setImageResource(R.drawable.light_icon);
-        LightHandleLongClick lightHandleLongClick = new LightHandleLongClick(lightIV);
+//        LightHandleLongClick lightHandleLongClick = new LightHandleLongClick(lightIV);
 //        lightIV.setOnLongClickListener(lightHandleLongClick);
         lightIV.setOnTouchListener(new View.OnTouchListener() {
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-//                RelativeLayout.LayoutParams tmpLP = (RelativeLayout.LayoutParams)v.getLayoutParams();
-//                int action = event.getAction();
-//                switch (action) {
-//                    case MotionEvent.ACTION_MOVE:
-//                        tmpLP.topMargin = (int)event.getY();
-//                        tmpLP.leftMargin = (int) event.getX();
-//                        v.setLayoutParams(tmpLP);
-//                        return true;
-//                    case MotionEvent.ACTION_DOWN:
-//                        return true;
-//                    case MotionEvent.ACTION_UP:
-//                        return true;
-//                }
                 ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
 
                 String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
@@ -137,9 +135,6 @@ public class SceneEditActivity extends ActionBarActivity {
                         mimeTypes, item);
 
                 // 实例化拖动阴影
-                View lightDragView = LayoutInflater.from(SceneEditActivity.this).inflate(R.layout.view_drag_light, null);
-//                View.DragShadowBuilder lightShadow = new View.DragShadowBuilder(lightDragView);
-
                 View.DragShadowBuilder lightShadow = new MyDragShadowBuilder(lightIV);
 
                 v.startDrag(dragData, lightShadow, v, 0);
@@ -147,6 +142,7 @@ public class SceneEditActivity extends ActionBarActivity {
                 return false;
             }
         });
+
         RelativeLayout.LayoutParams lightLP = new RelativeLayout.LayoutParams(80, 80);
         lightLP.leftMargin = 200;
         lightLP.topMargin = 250;
@@ -171,23 +167,54 @@ public class SceneEditActivity extends ActionBarActivity {
                 case DragEvent.ACTION_DRAG_ENTERED:
                     return true;
                 case DragEvent.ACTION_DRAG_LOCATION:
-                    int x = (int)event.getX();
-                    int y = (int)event.getY();
+//                    int x = (int)(event.getX() - 40);
+//                    int y = (int)(event.getY() - 80);
+                    int x = (int)(event.getX());
+                    int y = (int)(event.getY());
                     Log.i(TAG, String.format("drag at x(%s) y(%s)", x + "", y + ""));
                     View viewParent = (View)view.getParent();
                     Bitmap bitmap = ((BitmapDrawable)viewParent.getBackground()).getBitmap();
-                    x = (int)(x * scale);
-                    y = (int)(y * scale);
+                    int w = bitmap.getWidth();
+                    int h = bitmap.getHeight();
+                    if (x > w - 1) {
+                        x = w - 1;
+                    }
+                    if (y > h - 1) {
+                        y = h - 1;
+                    }
+//                    x = (int)(x * scale);
+//                    y = (int)(y * scale);
                     int clrPix = bitmap.getPixel(x, y);
                     topIVHandler.sendEmptyMessage(clrPix);
                     return true;
                 case DragEvent.ACTION_DRAG_EXITED:
+                    RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)view.getLayoutParams();
+                    int vx = (int)(event.getX() - 40);
+                    int vy = (int)(event.getY() - 80);
+                    if (vy > 640) {
+                        vy = 640;
+                    }
+                    if (vy < colorPickerYOffset) {
+                        vy = 0;
+                    }
+                    lp.leftMargin = vx;
+                    lp.topMargin = vy;
+                    view.setLayoutParams(lp);
+                    view.setVisibility(View.VISIBLE);
                     return true;
                 case DragEvent.ACTION_DROP:
-                    RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)view.getLayoutParams();
-                    lp.leftMargin = (int)event.getX();
-                    lp.topMargin = (int)event.getY();
-                    view.setLayoutParams(lp);
+                    RelativeLayout.LayoutParams vlp = (RelativeLayout.LayoutParams)view.getLayoutParams();
+                    int vvx = (int)(event.getX() - 40);
+                    int vvy = (int)(event.getY() - 80);
+                    if (vvy > 640) {
+                        vvy = 640;
+                    }
+                    if (vvy < 0) {
+                        vvy = 0;
+                    }
+                    vlp.leftMargin = vvx;
+                    vlp.topMargin = vvy;
+                    view.setLayoutParams(vlp);
                     view.setVisibility(View.VISIBLE);
                     return true;
                 case DragEvent.ACTION_DRAG_ENDED:
@@ -218,9 +245,9 @@ public class SceneEditActivity extends ActionBarActivity {
                     mimeTypes, item);
 
             // Instantiates the drag shadow builder.
-//            View.DragShadowBuilder myShadow = new View.DragShadowBuilder(v);
+            View.DragShadowBuilder myShadow = new View.DragShadowBuilder(v);
 
-            View.DragShadowBuilder myShadow = new MyDragShadowBuilder(dragView);
+//            View.DragShadowBuilder myShadow = new MyDragShadowBuilder(dragView);
             v.startDrag(dragData, myShadow, v, 0);
 
             v.setVisibility(View.INVISIBLE);
@@ -269,13 +296,13 @@ public class SceneEditActivity extends ActionBarActivity {
 
             // Sets the touch point's position to be in the middle of the drag shadow
             touch.set(width / 2, height);
+//            touch.set(0,0);
         }
 
         // Defines a callback that draws the drag shadow in a Canvas that the system constructs
         // from the dimensions passed in onProvideShadowMetrics().
         @Override
         public void onDrawShadow(Canvas canvas) {
-
             // Draws the ColorDrawable in the Canvas passed in from the system.
             shadow.draw(canvas);
         }

@@ -17,7 +17,6 @@
 
     <string-array name="left_nav_items">
         <item>我的家</item>
-        <item>场景</item>
         <item>灯</item>
         <item>开关</item>
         <item>遥控</item>

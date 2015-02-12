@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.util.Log;
@@ -18,8 +19,9 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
+import com.everhope.elighte.fragments.AddSceneFragment;
+import com.everhope.elighte.fragments.FragmentTabListener;
 import com.everhope.elighte.fragments.HomeFragment;
 import com.everhope.elighte.fragments.LightFragment;
 import com.everhope.elighte.R;
@@ -114,29 +116,25 @@ public class MainActivity extends ActionBarActivity {
         switch (position) {
             case 0:
                 //打开首页
+//                setupHomeTabs();
                 fragment = new HomeFragment();
 //                Bundle args = new Bundle();
 //                args.putInt(PlanetFragment.ARG_PLANET_NUMBER, position);
 //                fragment.setArguments(args);
                 break;
             case 1:
-                //打开场景
-//                fragment = SceneFragment.newInstance("场景");
-                fragment = new HomeFragment();
-                break;
-            case 2:
                 //打开灯
                 fragment = LightFragment.newInstance("我的灯");
                 break;
-            case 3:
+            case 2:
                 //开关配置
                 fragment = SwitchFragment.newInstance("开关","test");
                 break;
-            case 4:
+            case 3:
                 //遥控配置
                 fragment = RemoterFragment.newInstance("遥控", "test");
                 break;
-            case 5:
+            case 4:
                 //打开设置
                 fragment = SettingsFragment.newInstance("设置");
                 break;
@@ -162,6 +160,41 @@ public class MainActivity extends ActionBarActivity {
 
 //        invalidateOptionsMenu();        //刷新menu
         drawerLayout.closeDrawer(leftListView);
+    }
+
+    private void setupHomeTabs() {
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+
+        actionBar.setDisplayShowTitleEnabled(true);
+
+        ActionBar.Tab sceneTab = actionBar.newTab()
+                .setText("场景")
+                .setTabListener(new FragmentTabListener<HomeFragment>(
+                        R.id.content_frame,
+                        this,
+                        "scene_tab",
+                        HomeFragment.class));
+        actionBar.addTab(sceneTab);
+        actionBar.selectTab(sceneTab);
+
+        ActionBar.Tab commonGroupsTab = actionBar.newTab()
+                .setText("常用组")
+                .setTabListener(new FragmentTabListener<LightFragment>(
+                        R.id.content_frame,
+                        this,
+                        "groups_tab",
+                        LightFragment.class));
+        actionBar.addTab(commonGroupsTab);
+
+        ActionBar.Tab commonLightsTab = actionBar.newTab()
+                .setText("常用灯")
+                .setTabListener(new FragmentTabListener<AddSceneFragment>(
+                        R.id.content_frame,
+                        this,
+                        "lights_tab",
+                        AddSceneFragment.class));
+        actionBar.addTab(commonLightsTab);
     }
 
     @Override
@@ -224,6 +257,7 @@ public class MainActivity extends ActionBarActivity {
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
                     break;
                 case 1:
+                    //场景
                     menu.findItem(R.id.action_frag_main_add).setVisible(false);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(true);
                     break;
@@ -245,14 +279,28 @@ public class MainActivity extends ActionBarActivity {
         if (mDrawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
+
+        FragmentManager fragmentManager = getFragmentManager();
+        Fragment fragment = null;
+
         // Handle action buttons
         switch(item.getItemId()) {
             case R.id.action_frag_main_add:
-                Toast.makeText (MainActivity.this, "添加场景", Toast.LENGTH_LONG).show();
-                return true;
+                //添加场景
+                fragment = AddSceneFragment.newInstance("","");
+                setTitle("添加场景");
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+
+        if (fragment != null) {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.content_frame, fragment)
+                    .commit();
+        }
+
+        return true;
     }
 
     @Override
