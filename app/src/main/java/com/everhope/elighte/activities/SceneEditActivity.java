@@ -25,6 +25,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
@@ -44,10 +45,30 @@ public class SceneEditActivity extends ActionBarActivity {
 
     private static final String TAG = "SceneEditActivity@Light";
 
+    //选色板竖直向的偏移量
     private int colorPickerYOffset;
+    //顶部logo图片
     private ImageView topIV;
+    //顶部图片设置handler
     private Handler topIVHandler;
+    //选色板布局器
+//    private RelativeLayout colorPickerRL;
+    private FrameLayout colorPickerFL;
+    //选色板图片
+    private Bitmap colorPickerBitmap;
+    //选色板图片宽度
+    private int colorPickerWidth;
+    //选色板图片高度
+    private int colorPickerHeight;
+    //缩放比率
     private float scale;
+
+    //当前场景-灯关联对象列表
+    private List<LightScene> lightScenes;
+    //当前场景
+    private Scene scene;
+    //是否已经加载过界面的标志
+    private boolean loaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,12 +80,9 @@ public class SceneEditActivity extends ActionBarActivity {
         long sceneID = intent.getLongExtra("scene_id",-1);
         if (sceneID != -1) {
             //正常情况
-            Scene scene = Scene.load(Scene.class, sceneID);
-            List<LightScene> lightScenes = scene.lightScenes();
-            List<Light> lights = new ArrayList<>();
-            for (LightScene lightScene : lightScenes) {
-                lights.add(lightScene.light);
-            }
+            this.scene = Scene.load(Scene.class, sceneID);
+            this.lightScenes = scene.lightScenes();
+            setTitle(scene.name);
         }
         //设置顶部底色变化
         this.topIVHandler = new Handler() {
@@ -73,6 +91,8 @@ public class SceneEditActivity extends ActionBarActivity {
 
                 int colorInt = msg.what;
                 topIV.setBackgroundColor(colorInt);
+                //发送消息
+
             }
         };
 
@@ -82,8 +102,23 @@ public class SceneEditActivity extends ActionBarActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+
+        //持久化到数据库相关数据
+        for(LightScene lightScene : lightScenes) {
+            lightScene.save();
+        }
+    }
+
+    @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+
+        if (!hasFocus || loaded) {
+            //失去焦点的时候或者已经加载过的 则直接返回
+            return;
+        }
 
         RelativeLayout rootRL = (RelativeLayout) findViewById(R.id.se_root);
         //获取屏幕高宽
@@ -95,13 +130,15 @@ public class SceneEditActivity extends ActionBarActivity {
         int widthPixels = displayMetrics.widthPixels;     //高宽一致
         int rootHeight = rootRL.getHeight();
 
-        //设置顶部图片大小
+        //设置顶部
         int heightTop = rootHeight - widthPixels;
 
         this.topIV = new ImageView(SceneEditActivity.this);
         ImageView imageView = topIV;
         imageView.setId(AppUtils.generateViewId());
-        imageView.setBackgroundColor(getResources().getColor(R.color.yellow));
+        imageView.setBackgroundColor(getResources().getColor(R.color.orange));
+        imageView.setImageResource(R.drawable.scene_edit_top_bg);
+        imageView.setScaleType(ImageView.ScaleType.FIT_XY);
 
         RelativeLayout.LayoutParams ivLayoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightTop);
         ivLayoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
@@ -109,49 +146,61 @@ public class SceneEditActivity extends ActionBarActivity {
         rootRL.addView(imageView, ivLayoutParams);
 
         //设置colorpicker
-        final RelativeLayout colorPickerRL = new RelativeLayout(SceneEditActivity.this);
-        colorPickerRL.setBackgroundDrawable(getResources().getDrawable(R.drawable.colorpicker));
+        this.colorPickerFL = new FrameLayout(SceneEditActivity.this);
+        int bgImgID = getResources().getIdentifier(scene.imgName, "drawable", getPackageName());
+        colorPickerFL.setBackgroundDrawable(getResources().getDrawable(bgImgID));
         RelativeLayout.LayoutParams pickerLP = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, widthPixels);
         pickerLP.addRule(RelativeLayout.BELOW, imageView.getId());
         LightDragListener lightDragListener = new LightDragListener();
-        colorPickerRL.setOnDragListener(lightDragListener);
+        colorPickerFL.setOnDragListener(lightDragListener);
         //计算图片缩放比率
         this.scale = 539 / (float)widthPixels;        //539为实际图片像素数
 
-        //light handle
-        final ImageView lightIV = new ImageView(SceneEditActivity.this);
-        lightIV.setTag("light-handle");
-        lightIV.setImageResource(R.drawable.light_icon);
-//        LightHandleLongClick lightHandleLongClick = new LightHandleLongClick(lightIV);
-//        lightIV.setOnLongClickListener(lightHandleLongClick);
-        lightIV.setOnTouchListener(new View.OnTouchListener() {
+        //light handle 根据数据库lights数量
+        for(int i = 0; i<lightScenes.size(); i++) {
+            LightScene lightScene = lightScenes.get(i);
+            Light light = lightScene.light;
+            final ImageView lightIV = new ImageView(SceneEditActivity.this);
+            lightIV.setTag(i+"");
+            lightIV.setImageResource(R.drawable.light_icon);
+            lightIV.setOnTouchListener(new View.OnTouchListener() {
 
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
 
-                String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
-                ClipData dragData = new ClipData(v.getTag().toString(),
-                        mimeTypes, item);
+                    ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
 
-                // 实例化拖动阴影
-                View.DragShadowBuilder lightShadow = new MyDragShadowBuilder(lightIV);
+                    String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
+                    ClipData dragData = new ClipData(v.getTag().toString(),
+                            mimeTypes, item);
 
-                v.startDrag(dragData, lightShadow, v, 0);
-                v.setVisibility(View.INVISIBLE);
-                return false;
-            }
-        });
+                    // 实例化拖动阴影
+                    View.DragShadowBuilder lightShadow = new MyDragShadowBuilder(lightIV);
 
-        RelativeLayout.LayoutParams lightLP = new RelativeLayout.LayoutParams(80, 80);
-        lightLP.leftMargin = 200;
-        lightLP.topMargin = 250;
-        colorPickerRL.addView(lightIV, lightLP);
+                    v.startDrag(dragData, lightShadow, v, 0);
+                    v.setVisibility(View.INVISIBLE);
+                    return true;
+                }
+            });
 
-        rootRL.addView(colorPickerRL, pickerLP);
+            FrameLayout.LayoutParams lightLP = new FrameLayout.LayoutParams(80, 80);
+            lightLP.leftMargin = lightScene.x;
+            lightLP.topMargin = lightScene.y;
+
+            colorPickerFL.addView(lightIV, lightLP);
+        }
+
+        rootRL.addView(colorPickerFL, pickerLP);
 
         //计算偏移量
-        colorPickerYOffset = heightTop + getSupportActionBar().getHeight();
+        this.colorPickerYOffset = heightTop + getSupportActionBar().getHeight();
+        //计算colorpicker高宽
+        this.colorPickerBitmap = ((BitmapDrawable)this.colorPickerFL.getBackground()).getBitmap();
+        this.colorPickerWidth = colorPickerBitmap.getWidth();
+        this.colorPickerHeight = colorPickerBitmap.getHeight();
+
+        //设置加载标志
+        loaded = true;
     }
 
     class LightDragListener implements View.OnDragListener {
@@ -160,98 +209,69 @@ public class SceneEditActivity extends ActionBarActivity {
         public boolean onDrag(View v, DragEvent event) {
 
             int action = event.getAction();
-            View view = (View)event.getLocalState();
+
+            View view = (View)event.getLocalState();        //light-icon view
+            int lightIndex = Integer.parseInt(view.getTag().toString());
             switch (action) {
                 case DragEvent.ACTION_DRAG_STARTED:
                     return true;
                 case DragEvent.ACTION_DRAG_ENTERED:
                     return true;
                 case DragEvent.ACTION_DRAG_LOCATION:
-//                    int x = (int)(event.getX() - 40);
-//                    int y = (int)(event.getY() - 80);
                     int x = (int)(event.getX());
                     int y = (int)(event.getY());
-                    Log.i(TAG, String.format("drag at x(%s) y(%s)", x + "", y + ""));
-                    View viewParent = (View)view.getParent();
-                    Bitmap bitmap = ((BitmapDrawable)viewParent.getBackground()).getBitmap();
-                    int w = bitmap.getWidth();
-                    int h = bitmap.getHeight();
-                    if (x > w - 1) {
-                        x = w - 1;
+                    //bitmap.getPixel() 只能取高宽范围各减少一个像素的范围
+                    if (x > colorPickerWidth - 1) {
+                        x = colorPickerWidth - 1;
                     }
-                    if (y > h - 1) {
-                        y = h - 1;
+                    if (y > colorPickerHeight - 1) {
+                        y = colorPickerHeight - 1;
                     }
-//                    x = (int)(x * scale);
-//                    y = (int)(y * scale);
-                    int clrPix = bitmap.getPixel(x, y);
+                    int clrPix = colorPickerBitmap.getPixel(x, y);
+                    //发送变色信号
                     topIVHandler.sendEmptyMessage(clrPix);
                     return true;
                 case DragEvent.ACTION_DRAG_EXITED:
-                    RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)view.getLayoutParams();
-                    int vx = (int)(event.getX() - 40);
-                    int vy = (int)(event.getY() - 80);
-                    if (vy > 640) {
-                        vy = 640;
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams)view.getLayoutParams();
+                    //事件触发坐标在shadowbuilder中发生了偏移
+                    int ex = (int)(event.getX() - 40);
+                    int ey = (int)(event.getY() - 80);
+                    int tempWidth = colorPickerWidth - 80;
+                    if (ey > tempWidth) {
+                        ey = tempWidth;
                     }
-                    if (vy < colorPickerYOffset) {
-                        vy = 0;
+                    if (ey < colorPickerYOffset) {
+                        ey = 0;
                     }
-                    lp.leftMargin = vx;
-                    lp.topMargin = vy;
+                    lp.leftMargin = ex;
+                    lp.topMargin = ey;
                     view.setLayoutParams(lp);
                     view.setVisibility(View.VISIBLE);
                     return true;
                 case DragEvent.ACTION_DROP:
-                    RelativeLayout.LayoutParams vlp = (RelativeLayout.LayoutParams)view.getLayoutParams();
-                    int vvx = (int)(event.getX() - 40);
-                    int vvy = (int)(event.getY() - 80);
-                    if (vvy > 640) {
-                        vvy = 640;
+                    FrameLayout.LayoutParams vlp = (FrameLayout.LayoutParams)view.getLayoutParams();
+                    int dx = (int)(event.getX() - 40);
+                    int dy = (int)(event.getY() - 80);
+                    int dropWidth = colorPickerWidth - 80;
+                    if (dy > dropWidth) {
+                        dy = dropWidth;
                     }
-                    if (vvy < 0) {
-                        vvy = 0;
+                    if (dy < 0) {
+                        dy = 0;
                     }
-                    vlp.leftMargin = vvx;
-                    vlp.topMargin = vvy;
+                    vlp.leftMargin = dx;
+                    vlp.topMargin = dy;
                     view.setLayoutParams(vlp);
                     view.setVisibility(View.VISIBLE);
+                    //记录位置
+                    lightScenes.get(lightIndex).x = dx;
+                    lightScenes.get(lightIndex).y = dy;
                     return true;
                 case DragEvent.ACTION_DRAG_ENDED:
                     return true;
                 default:
                     break;
             }
-//                String t = event.getClipData().getItemAt(0).getText().toString();
-//            Toast.makeText(SceneEditActivity.this, a + "000", Toast.LENGTH_LONG).show();
-            return false;
-        }
-    }
-
-    class LightHandleLongClick implements View.OnLongClickListener {
-        private View dragView;
-
-        public LightHandleLongClick(View view) {
-            this.dragView = view;
-        }
-
-        @Override
-        public boolean onLongClick(View v) {
-
-            ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
-
-            String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
-            ClipData dragData = new ClipData(v.getTag().toString(),
-                    mimeTypes, item);
-
-            // Instantiates the drag shadow builder.
-            View.DragShadowBuilder myShadow = new View.DragShadowBuilder(v);
-
-//            View.DragShadowBuilder myShadow = new MyDragShadowBuilder(dragView);
-            v.startDrag(dragData, myShadow, v, 0);
-
-            v.setVisibility(View.INVISIBLE);
-
             return false;
         }
     }

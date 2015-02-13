@@ -20,6 +20,9 @@ import org.apache.commons.lang.math.RandomUtils;
 public class MessageUtils {
     private static final String TAG = "MessageUtils@Light";
 
+    //报文特征码
+    public static short messageSign = 0;
+
     /**
      * 生成服务发现报文
      * @return

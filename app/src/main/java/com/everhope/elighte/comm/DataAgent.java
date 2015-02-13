@@ -59,6 +59,8 @@ public class DataAgent {
         CommIntentService.startActionDetectGate(context, receiver);
     }
 
+
+
     /**
      * 登录网关
      *

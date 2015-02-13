@@ -20,6 +20,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
+import com.everhope.elighte.adapters.LeftMenuAdapter;
 import com.everhope.elighte.fragments.AddSceneFragment;
 import com.everhope.elighte.fragments.FragmentTabListener;
 import com.everhope.elighte.fragments.HomeFragment;
@@ -30,6 +31,9 @@ import com.everhope.elighte.fragments.SettingsFragment;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.fragments.SwitchFragment;
 import com.everhope.elighte.helpers.AppUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * 主页面
@@ -71,7 +75,13 @@ public class MainActivity extends ActionBarActivity {
 
         drawerLayout.setDrawerShadow(R.drawable.drawer_shadow, GravityCompat.START);
 
-        leftListView.setAdapter(new ArrayAdapter<String>(this, R.layout.drawer_list_item, leftItems));
+        ArrayList<String> arrayList = new ArrayList<>();
+        for(int i = 0; i < leftItems.length; i++) {
+            arrayList.add(leftItems[i]);
+        }
+        LeftMenuAdapter leftMenuAdapter = new LeftMenuAdapter(MainActivity.this, arrayList);
+//        leftListView.setAdapter(new ArrayAdapter<String>(this, R.layout.drawer_list_item, leftItems));
+        leftListView.setAdapter(leftMenuAdapter);
         leftListView.setOnItemClickListener(new DrawerItemClickListener());
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);

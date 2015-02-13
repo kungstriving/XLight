@@ -243,6 +243,7 @@ public class Message {
 
     public void buildUp() {
         setMessageID(MessageUtils.getRandomMessageID());
+        //DAEM 的设置 和 分片序号
         setAppToGate(true);
         setAck(false);
         setSliceError(false);
@@ -285,6 +286,10 @@ public class Message {
         return messageID;
     }
 
+    /**
+     * 设置报文序号 目前随机
+     * @param messageID
+     */
     public void setMessageID(short messageID) {
         this.messageID = messageID;
     }

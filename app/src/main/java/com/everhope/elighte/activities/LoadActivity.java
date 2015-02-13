@@ -304,6 +304,9 @@ public class LoadActivity extends ActionBarActivity {
                         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
                         editor.putString(Constants.SYSTEM_SETTINGS.GATE_STA_IP, gateStaIP);
                         editor.commit();
+                        //设置网络通信特征码
+                        short newMsgSign = logonResponseMsg.getSign();
+                        MessageUtils.messageSign = newMsgSign;
                         //正常登录 进入主页面
                         Intent intent = new Intent(LoadActivity.this, MainActivity.class);
                         startActivity(intent);

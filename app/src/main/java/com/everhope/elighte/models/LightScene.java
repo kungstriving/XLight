@@ -16,6 +16,28 @@ public class LightScene extends Model{
     public Light light;
     @Column(name="SCENE")
     public Scene scene;
+    /**
+     * R
+     */
+    @Column(name="R")
+    public int R;
+
+    /**
+     * G
+     */
+    @Column(name = "G")
+    public int G;
+
+    /**
+     * B
+     */
+    @Column(name = "B")
+    public int B;
+
+    @Column(name = "x")
+    public int x;
+    @Column(name = "y")
+    public int y;
 
     public List<Light> lights() {
         return getMany(Light.class, "LightScene");

@@ -21,6 +21,9 @@ public class ClientLoginMsgResponse extends Message{
      * 0x1001 ——密码错误
      */
     private short returnCode;
+    /**
+     * 登录消息返回的特征码
+     */
     private short sign;
     private short gateInfoLength;
     private short gateProtoVer;
@@ -111,6 +114,10 @@ public class ClientLoginMsgResponse extends Message{
         this.returnCode = returnCode;
     }
 
+    /**
+     * 获取消息返回的特征码
+     * @return
+     */
     public short getSign() {
         return sign;
     }

@@ -8,6 +8,31 @@ package com.everhope.elighte.constants;
 public class FunctionCodes {
 
     /**
+     * 遥调功能码
+     */
+    public static enum RemoteTurn {
+        //单个站点操作
+        SINGLE_STATION_OP(Byte.decode("0x90")),
+
+        /////////////////////////// 子命令码
+
+        //子命令-亮度调节
+        BRIGHTNESS_TURN(Byte.decode("0x30")),
+        //子命令-颜色调节
+        COLOR_TURN(Byte.decode("0x31"));
+
+        private byte funcCode;
+
+        private RemoteTurn(byte code) {
+            this.funcCode = code;
+        }
+
+        public byte getFuncCode() {
+            return this.funcCode;
+        }
+    }
+
+    /**
      * 0x00	智能网关服务发现
      * 0x01	登录
      * 0x02	退出登录

@@ -16,6 +16,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,12 +31,16 @@ import java.util.List;
  * Created by kongxiaoyang on 2015/1/13.
  */
 public class HomeFragment extends Fragment{
+
+    private ScrollView homeContentSV;
+
     public HomeFragment() {}
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_home, container, false);
+        this.homeContentSV = (ScrollView)rootView;
         //获取屏幕宽度
         WindowManager windowManager = (WindowManager)getActivity().getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics displayMetrics = new DisplayMetrics();
@@ -118,6 +123,9 @@ public class HomeFragment extends Fragment{
                 popup.setBackgroundDrawable(new BitmapDrawable());
                 popup.showAsDropDown(v);
 
+                //设置背景模糊
+                int bgImgID = getResources().getIdentifier(scene.imgName + "_blur", "drawable", getActivity().getPackageName());
+                homeContentSV.setBackgroundDrawable(getResources().getDrawable(bgImgID));
                 layout.findViewById(R.id.scene_control_edit).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

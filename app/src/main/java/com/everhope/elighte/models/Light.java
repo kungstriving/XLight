@@ -26,23 +26,7 @@ public class Light extends Model{
     @Column(name="LIGHT_ID")
     public String lightID;
 
-    /**
-     * R
-     */
-    @Column(name="R")
-    public int R;
 
-    /**
-     * G
-     */
-    @Column(name = "G")
-    public int G;
-
-    /**
-     * B
-     */
-    @Column(name = "B")
-    public int B;
 
     public List<LightScene> lightScenes () {
         return getMany(LightScene.class, "LIGHT");
