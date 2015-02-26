@@ -241,6 +241,15 @@ public class Message {
         return s1;
     }
 
+    /**
+     * 创建消息的通用部分
+     * 报文序号
+     * 报文上行/下行（默认下行）
+     * 是否响应报文
+     * 是否分片错误
+     * 是否还有分片数据
+     * 分片数据ID
+     */
     public void buildUp() {
         setMessageID(MessageUtils.getRandomMessageID());
         //DAEM 的设置 和 分片序号

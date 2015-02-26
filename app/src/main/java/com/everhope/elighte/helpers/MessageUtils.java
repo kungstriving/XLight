@@ -4,7 +4,11 @@ import android.util.Log;
 
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.ClientLoginMsgResponse;
+import com.everhope.elighte.models.GetAllStationsMsg;
+import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
+import com.everhope.elighte.models.SetGateNetworkMsg;
+import com.everhope.elighte.models.SetGateNetworkMsgResponse;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -45,11 +49,22 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
 //        return bytes;
     }
 
+    /**
+     * 解析服务发现回应报文
+     * @param data
+     * @param count
+     * @return
+     */
     public static ServiceDiscoverMsg decomposeServiceDiscoverMsg(byte[] data, int count) {
         ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg(data);
         return serviceDiscoverMsg;
     }
 
+    /**
+     * 组织生成登录消息报文
+     * @param clientID
+     * @return
+     */
     public static ClientLoginMsg composeLogonMsg(String clientID) {
         ClientLoginMsg clientLoginMsg = new ClientLoginMsg();
         clientLoginMsg.setClientID(clientID);
@@ -57,9 +72,64 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         return clientLoginMsg;
     }
 
+    /**
+     * 解析登录回应报文
+     * @param data
+     * @param count
+     * @return
+     */
     public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count) {
         ClientLoginMsgResponse clientLoginMsgResponse = new ClientLoginMsgResponse(data);
         return clientLoginMsgResponse;
+    }
+
+    /**
+     * 组织生成设置网关wifi信息 报文
+     * @param ssid
+     * @param pwd
+     * @return
+     */
+    public static SetGateNetworkMsg composeSetGateMsg(String ssid, String pwd) {
+        SetGateNetworkMsg setGateNetworkMsg = new SetGateNetworkMsg();
+        setGateNetworkMsg.setSsid(ssid);
+        setGateNetworkMsg.setPwd(pwd);
+
+        setGateNetworkMsg.buildUp();
+
+        return setGateNetworkMsg;
+    }
+
+    /**
+     * 解析设置网关wifi信息回应报文
+     * @param data
+     * @param length
+     * @return
+     */
+    public static SetGateNetworkMsgResponse decomposeSetGateReturnMsg(byte[] data, int length) {
+        SetGateNetworkMsgResponse setGateNetworkMsgResponse = new SetGateNetworkMsgResponse(data);
+        return setGateNetworkMsgResponse;
+    }
+
+    /**
+     * 组织生成获取所有站点列表报文
+     * @return
+     */
+    public static GetAllStationsMsg composeGetAllStationsMsg() {
+        GetAllStationsMsg getAllLightsMsg = new GetAllStationsMsg();
+        getAllLightsMsg.buildUp();
+
+        return getAllLightsMsg;
+    }
+
+    /**
+     * 解析获取所有站点列表回应报文
+     * @param data
+     * @param length
+     * @return
+     */
+    public static GetAllStationsMsgResponse decomposeGetAllStationsMsgResponse(byte[] data, int length) {
+        GetAllStationsMsgResponse getAllStationsMsgResponse = new GetAllStationsMsgResponse(data);
+        return getAllStationsMsgResponse;
     }
 
     ////////////////////////////////////// 通用方法 ////////////////////////////////////

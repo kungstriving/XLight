@@ -5,18 +5,15 @@ import android.net.DhcpInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.util.Log;
 import android.view.View;
 
 import com.everhope.elighte.XLightApplication;
-import com.everhope.elighte.models.Light;
-import com.everhope.elighte.models.LightScene;
+import com.everhope.elighte.models.SubGroup;
 import com.everhope.elighte.models.Scene;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.net.util.SubnetUtils;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -59,85 +56,90 @@ public class AppUtils {
         rainbowScene.status = 0;
         rainbowScene.save();
 
-        //新建三个灯
-        Light light1 = new Light();
-        light1.lightID = "0001";
-        light1.name="0001";
-        light1.save();
+        //新建分组
+        SubGroup ungroup = new SubGroup();
+        ungroup.name = "未分组";
+        ungroup.save();
 
-        Light light2 = new Light();
-        light2.lightID = "0002";
-        light2.name="0002";
-        light2.save();
-
-        Light light3 = new Light();
-        light3.lightID = "0003";
-        light3.name="0003";
-        light3.save();
-
-        //每个场景包含三个灯
-        LightScene lightScene = new LightScene();
-        lightScene.light = light1;
-        lightScene.scene = sunsetScene;
-        lightScene.save();
-
-        LightScene lightScene1 = new LightScene();
-        lightScene1.light = light2;
-        lightScene1.scene = sunsetScene;
-        lightScene1.save();
-
-        LightScene lightScene2 = new LightScene();
-        lightScene2.light = light3;
-        lightScene2.scene = sunsetScene;
-        lightScene2.save();
-
-        //
-        lightScene = new LightScene();
-        lightScene.light = light1;
-        lightScene.scene = seaScene;
-        lightScene.save();
-
-        lightScene1 = new LightScene();
-        lightScene1.light = light2;
-        lightScene1.scene = seaScene;
-        lightScene1.save();
-
-        lightScene2 = new LightScene();
-        lightScene2.light = light3;
-        lightScene2.scene = seaScene;
-        lightScene2.save();
-
-        //
-        lightScene = new LightScene();
-        lightScene.light = light1;
-        lightScene.scene = forestScene;
-        lightScene.save();
-
-        lightScene1 = new LightScene();
-        lightScene1.light = light2;
-        lightScene1.scene = forestScene;
-        lightScene1.save();
-
-        lightScene2 = new LightScene();
-        lightScene2.light = light3;
-        lightScene2.scene = forestScene;
-        lightScene2.save();
-
-        //
-        lightScene = new LightScene();
-        lightScene.light = light1;
-        lightScene.scene = rainbowScene;
-        lightScene.save();
-
-        lightScene1 = new LightScene();
-        lightScene1.light = light2;
-        lightScene1.scene = rainbowScene;
-        lightScene1.save();
-
-        lightScene2 = new LightScene();
-        lightScene2.light = light3;
-        lightScene2.scene = rainbowScene;
-        lightScene2.save();
+//        //新建三个灯
+//        Light light1 = new Light();
+//        light1.lightID = "0001";
+//        light1.name="0001";
+//        light1.save();
+//
+//        Light light2 = new Light();
+//        light2.lightID = "0002";
+//        light2.name="0002";
+//        light2.save();
+//
+//        Light light3 = new Light();
+//        light3.lightID = "0003";
+//        light3.name="0003";
+//        light3.save();
+//
+//        //每个场景包含三个灯
+//        LightScene lightScene = new LightScene();
+//        lightScene.light = light1;
+//        lightScene.scene = sunsetScene;
+//        lightScene.save();
+//
+//        LightScene lightScene1 = new LightScene();
+//        lightScene1.light = light2;
+//        lightScene1.scene = sunsetScene;
+//        lightScene1.save();
+//
+//        LightScene lightScene2 = new LightScene();
+//        lightScene2.light = light3;
+//        lightScene2.scene = sunsetScene;
+//        lightScene2.save();
+//
+//        //
+//        lightScene = new LightScene();
+//        lightScene.light = light1;
+//        lightScene.scene = seaScene;
+//        lightScene.save();
+//
+//        lightScene1 = new LightScene();
+//        lightScene1.light = light2;
+//        lightScene1.scene = seaScene;
+//        lightScene1.save();
+//
+//        lightScene2 = new LightScene();
+//        lightScene2.light = light3;
+//        lightScene2.scene = seaScene;
+//        lightScene2.save();
+//
+//        //
+//        lightScene = new LightScene();
+//        lightScene.light = light1;
+//        lightScene.scene = forestScene;
+//        lightScene.save();
+//
+//        lightScene1 = new LightScene();
+//        lightScene1.light = light2;
+//        lightScene1.scene = forestScene;
+//        lightScene1.save();
+//
+//        lightScene2 = new LightScene();
+//        lightScene2.light = light3;
+//        lightScene2.scene = forestScene;
+//        lightScene2.save();
+//
+//        //
+//        lightScene = new LightScene();
+//        lightScene.light = light1;
+//        lightScene.scene = rainbowScene;
+//        lightScene.save();
+//
+//        lightScene1 = new LightScene();
+//        lightScene1.light = light2;
+//        lightScene1.scene = rainbowScene;
+//        lightScene1.save();
+//
+//        lightScene2 = new LightScene();
+//        lightScene2.light = light3;
+//        lightScene2.scene = rainbowScene;
+//        lightScene2.save();
     }
 
     public static int generateViewId() {
@@ -186,6 +188,17 @@ public class AppUtils {
 
         SubnetUtils subnetUtils = new SubnetUtils(s_ipAddress, s_netmask);
         return subnetUtils.getInfo().getAllAddresses();
+    }
+
+    public static String getSubnetBroadcaseAddr(Context context) {
+        WifiManager wifii = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+        DhcpInfo d = wifii.getDhcpInfo();
+
+        String s_ipAddress = intToIp(d.ipAddress);
+        String s_netmask = intToIp(d.netmask);
+
+        SubnetUtils subnetUtils = new SubnetUtils(s_ipAddress, s_netmask);
+        return subnetUtils.getInfo().getBroadcastAddress();
     }
 
     private static String intToIp(int addr) {

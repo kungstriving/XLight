@@ -3,6 +3,7 @@ package com.everhope.elighte.models;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
+import com.activeandroid.query.Select;
 
 import java.util.List;
 
@@ -26,10 +27,22 @@ public class Light extends Model{
     @Column(name="LIGHT_ID")
     public String lightID;
 
-
+    public List<LightGroup> lightGroups() {
+        return getMany(LightGroup.class, "GROUP");
+    }
 
     public List<LightScene> lightScenes () {
         return getMany(LightScene.class, "LIGHT");
+    }
+
+    /**
+     * 获取所有灯列表
+     * @return
+     */
+    public static List<Light> getAll() {
+        return new Select()
+                .from(Light.class)
+                .execute();
     }
 
     public Light() {

@@ -12,6 +12,8 @@ import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.ClientLoginMsg;
+import com.everhope.elighte.models.GetAllStationsMsg;
+import com.everhope.elighte.models.SetGateNetworkMsg;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -19,6 +21,11 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 /**
  * 所有通信消息的发送线程
@@ -37,6 +44,15 @@ public class CommIntentService extends IntentService {
      * 登录到网关
      */
     private static final String ACTION_LOGIN_GATE = "com.everhope.xlight.comm.action.login.gate";
+    /**
+     * 设置网关密码
+     */
+    private static final String ACTION_SET_NETWORK = "com.everhope.xlight.comm.action.set.network";
+
+    /**
+     * 获取所有灯列表
+     */
+    private static final String ACTION_GET_ALL_LIGHTS = "com.everhope.xlight.comm.action.get.all.lights";
 
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
@@ -52,6 +68,15 @@ public class CommIntentService extends IntentService {
      * APP端唯一标示
      */
     private static final String EXTRA_CLIENTID = "com.everhope.xlight.comm.extra.clientid";
+
+    /**
+     * 设置网关的网络名称
+     */
+    private static final String EXTRA_SSID = "com.everhope.xlight.comm.extra.ssid";
+    /**
+     * 网络密码
+     */
+    private static final String EXTRA_NET_PWD = "com.everhope.xlight.comm.extra.netpwd";
 
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
     /**
@@ -109,6 +134,29 @@ public class CommIntentService extends IntentService {
         context.startService(intent);
     }
 
+    public static void startActionSetGateNetwork(Context context, ResultReceiver receiver, String name, String pwd) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_SET_NETWORK);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+        intent.putExtra(EXTRA_SSID, name);
+        intent.putExtra(EXTRA_NET_PWD, pwd);
+
+        context.startService(intent);
+    }
+
+    /**
+     * 启动获取所有站点列表的服务
+     * @param context
+     * @param receiver
+     */
+    public static void startActionGetAllLights(Context context, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_GET_ALL_LIGHTS);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
+
     /**
      * 启动UDP广播检测
      * TODO 暂不确定网关是否支持 未实现
@@ -143,24 +191,112 @@ public class CommIntentService extends IntentService {
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     handleActionLoginToGate(clientID, receiver);
                     break;
+                case ACTION_GET_ALL_LIGHTS:
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionGetAllLights(receiver);
+                    break;
                 case ACTION_DETECT_GATE:
                     //网关侦测
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
-                    handleActionDetectGate(receiver);
+//                    handleActionDetectGate(receiver);
+                    handleActionDetectGateBroadcast(receiver);
                     break;
                 case ACTION_SERVICE_DISCOVER:
+                    //服务发现
                     handleActionServiceDis();
                     break;
                 case ACTION_CONNECT:
+                    //连接网关
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     String address = intent.getStringExtra(EXTRA_GATEADDR_PARAM);
                     handleActionConnect(address, receiver);
+                    break;
+                case ACTION_SET_NETWORK:
+                    //设置网关的网络密码
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    String ssid = intent.getStringExtra(EXTRA_SSID);
+                    String pwd = intent.getStringExtra(EXTRA_NET_PWD);
+                    handleActionSetNetwork(ssid, pwd, receiver);
                     break;
                 default:
                     break;
             }
 
         }
+    }
+
+
+    /////////////////////////////// 服务处理 ///////////////////////////////////
+
+
+    private void handleActionGetAllLights(ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        GetAllStationsMsg getAllLightsMsg = MessageUtils.composeGetAllStationsMsg();
+
+        Log.i(TAG, String.format("获取所有灯列表消息[%s]", getAllLightsMsg.toString()));
+
+        byte[] bytes = getAllLightsMsg.toMessageByteArray();
+        short msgID = getAllLightsMsg.getMessageID();
+
+        try {
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
+    private void handleActionSetNetwork(String ssid, String pwd, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        SetGateNetworkMsg setGateNetworkMsg = MessageUtils.composeSetGateMsg(ssid, pwd);
+
+        Log.i(TAG, String.format("设置网关网络密码消息[%s]", setGateNetworkMsg.toString()));
+
+        byte[] bytes = setGateNetworkMsg.toMessageByteArray();
+        short msgID = setGateNetworkMsg.getMessageID();
+
+        try {
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+        }
+
+        receiver.send(resultCode, resultData);
     }
 
     private void handleActionLoginToGate(String clientID, ResultReceiver receiver) {
@@ -269,6 +405,62 @@ public class CommIntentService extends IntentService {
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
         }
     }
+
+    /**
+     * UDP广播方式检测网关服务
+     * @param receiver
+     */
+    private void handleActionDetectGateBroadcast(ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        try {
+            DatagramSocket datagramSocket = new DatagramSocket();
+            datagramSocket.setBroadcast(true);
+
+            InetAddress inetAddress = InetAddress.getByName(AppUtils.getSubnetBroadcaseAddr(CommIntentService.this));
+
+            byte[] data = MessageUtils.composeServiceDiscoverMsg();
+            DatagramPacket datagramPacket = new DatagramPacket(data, data.length, inetAddress,Constants.SYSTEM_SETTINGS.GATE_BROADCAST_PORT);
+            datagramSocket.send(datagramPacket);
+
+            datagramSocket.close();
+
+            DatagramSocket datagramReceiveSocket = new DatagramSocket(Constants.SYSTEM_SETTINGS.GATE_BROADCAST_PORT);
+            datagramReceiveSocket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
+
+            byte[] readedBytes = new byte[1024];
+            DatagramPacket recPacket = new DatagramPacket(readedBytes, readedBytes.length);
+            datagramReceiveSocket.receive(recPacket);
+
+            //解析消息
+            MessageUtils.decomposeServiceDiscoverMsg(readedBytes, readedBytes.length);
+
+            InetAddress gateAddr = recPacket.getAddress();
+            String gateIP = gateAddr.getHostAddress();
+
+            resultCode = 0;
+            resultData.putString(Constants.KEYS_PARAMS.GATE_STA_IP, gateIP);
+            receiver.send(resultCode, resultData);
+
+        } catch (SocketException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_NOFOUND_STA_GATE;
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_NOFOUND_STA_GATE;
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_NOFOUND_STA_GATE;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
     /**
      * TCP方式检测网关服务
      */

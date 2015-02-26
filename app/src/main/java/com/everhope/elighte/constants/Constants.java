@@ -14,6 +14,11 @@ public class Constants {
         public static final int RESULT_CODE_OK = 0;
 
         /**
+         * 消息返回码 0x0000
+         */
+        public static final short RETURN_CODE_OK = 0x0000;
+
+        /**
          * 网络错误
          */
         public static final int EC_NETWORK_ERROR = 1000;
@@ -45,6 +50,11 @@ public class Constants {
         ////////////////////////////////////////////////////////////////////////
 
         /**
+         * 网关SSID
+         */
+        public static final String GATE_AP_SSID = "USR-WIFI232-T";
+
+        /**
          * 网关sta地址
          */
         public static final String GATE_STA_IP = "ss_gate_sta_ip";
@@ -58,6 +68,12 @@ public class Constants {
          * 网关监听端口 8899
          */
         public static final int GATE_TALK_PORT = 8899;
+
+        /**
+         * 网关UDP广播端口 8900
+         */
+        public static final int GATE_BROADCAST_PORT = 8900;
+
         /**
          * 网络接收数据包的缓存大小
          * 协议中设定最大报文长度为530字节

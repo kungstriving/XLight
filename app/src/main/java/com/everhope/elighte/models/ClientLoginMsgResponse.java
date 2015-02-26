@@ -1,5 +1,7 @@
 package com.everhope.elighte.models;
 
+import org.apache.commons.codec.binary.Hex;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -84,7 +86,8 @@ public class ClientLoginMsgResponse extends Message{
         setGateProtoVer(ver);
         byte[] gateMac = new byte[8];
         byteBuffer.get(gateMac);
-        setGatePhysicalAddr(new String(gateMac));
+//        setGatePhysicalAddr(new String(gateMac));
+        setGatePhysicalAddr(new String(Hex.encodeHex(gateMac)));
         byte[] gateDesc = new byte[length - 10];        //-12 or -14
         byteBuffer.get(gateDesc);
         setGateDesc(new String(gateDesc));

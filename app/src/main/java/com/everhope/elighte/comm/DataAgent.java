@@ -59,8 +59,6 @@ public class DataAgent {
         CommIntentService.startActionDetectGate(context, receiver);
     }
 
-
-
     /**
      * 登录网关
      *
@@ -84,6 +82,22 @@ public class DataAgent {
             CommIntentService.startActionLoginToGate(context, receiver, clientID);
         }
 
+    }
+
+    /**
+     * 设置网关网络信息
+     *
+     * @param context
+     * @param receiver
+     * @param ssid
+     * @param pwd
+     */
+    public void setGateNetwork(Context context, ResultReceiver receiver, String ssid, String pwd) {
+        CommIntentService.startActionSetGateNetwork(context, receiver, ssid, pwd);
+    }
+
+    public void getAllLights(Context context, ResultReceiver receiver) {
+        CommIntentService.startActionGetAllLights(context, receiver);
     }
 
     /**

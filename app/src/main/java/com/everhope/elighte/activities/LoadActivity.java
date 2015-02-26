@@ -53,8 +53,8 @@ public class LoadActivity extends ActionBarActivity {
         progressBar = (ProgressBar) findViewById(R.id.load_progressBar);
         progressBar.setVisibility(ProgressBar.VISIBLE);
 
-//        connectAndLoginToGate();
-        connectToGateAP();
+        connectAndLoginToGate();
+//        connectToGateAP();
 //        fakeLoading();
         PreferenceManager.setDefaultValues(this, R.xml.preference, false);
         this.debug = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.SYSTEM_SETTINGS.DEBUG, false);
@@ -63,7 +63,7 @@ public class LoadActivity extends ActionBarActivity {
     /**
      * 直接通过AP网络连接和登录
      */
-    private void connectToGateAP() {
+    private void connectToGate(final String gateIP, final int port) {
         final DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
 
         final Handler handler = new Handler() {
@@ -125,7 +125,8 @@ public class LoadActivity extends ActionBarActivity {
             @Override
             public void run() {
                 try {
-                    dataAgent.buildConnection(Constants.SYSTEM_SETTINGS.GATE_AP_IP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
+                    dataAgent.buildConnection(gateIP, port);
+//                    dataAgent.buildConnection(Constants.SYSTEM_SETTINGS.GATE_AP_IP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
                     handler.sendEmptyMessage(0);
 
                 } catch (IOException e) {
@@ -169,7 +170,7 @@ public class LoadActivity extends ActionBarActivity {
      */
     private void connectAndLoginToGate() {
 
-        Log.i(TAG, "连接到网关");
+        Log.i(TAG, "开始连接到网关");
 
         //获取存储的sta地址
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -180,7 +181,7 @@ public class LoadActivity extends ActionBarActivity {
             XLightApplication lightApp = XLightApplication.getInstance();
             DataAgent dataAgent = lightApp.getDataAgent();
 
-            Log.i(TAG, "开始搜寻网关");
+            Log.i(TAG, "开始UDP广播搜寻网关");
             final TextView textView = (TextView)findViewById(R.id.load_info);
             textView.setText("搜寻网关");
 
@@ -191,13 +192,14 @@ public class LoadActivity extends ActionBarActivity {
                         //获取到了网关STA地址
                         String gateStaIP = resultData.getString(Constants.KEYS_PARAMS.GATE_STA_IP);
                         Log.i(TAG, String.format("获取到了网关地址[%s]", gateStaIP));
-                        textView.setText(String.format("网关地址[%s]", gateStaIP));
+//                        textView.setText(String.format("网关地址[%s]", gateStaIP));
                         //登录到网关
-//                        loginToGate(gateStaIP);
+                        connectToGate(gateStaIP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
 
                     } else {
                         //未获取到网关STA地址
-                        Toast.makeText(LoadActivity.this, "未获取到网关地址", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(LoadActivity.this, "未获取到网关地址", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "未获取到网关地址");
                         //关闭loading 进入AP网络设置界面
                         if (progressBar.isShown()) {
                             progressBar.setVisibility(ProgressBar.INVISIBLE);
@@ -333,6 +335,7 @@ public class LoadActivity extends ActionBarActivity {
     private void switchToAPNetwork() {
         Intent intent = new Intent(LoadActivity.this, APSetupActivity.class);
         startActivity(intent);
+        finish();
     }
 
 }

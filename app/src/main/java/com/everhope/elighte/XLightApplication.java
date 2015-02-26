@@ -2,6 +2,7 @@ package com.everhope.elighte;
 
 import android.app.Application;
 
+import com.everhope.elighte.constants.ConnectGateStatus;
 import com.everhope.elighte.helpers.AppContext;
 import com.everhope.elighte.comm.DataAgent;
 
@@ -17,6 +18,7 @@ public class XLightApplication extends com.activeandroid.app.Application{
 
     private DataAgent dataAgent = null;
     private AppContext appContext = null;
+    public static ConnectGateStatus connectGateStatus = ConnectGateStatus.DISCONNECTED;
 
     @Override
     public void onCreate() {

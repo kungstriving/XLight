@@ -5,6 +5,8 @@ import android.app.FragmentManager;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -16,11 +18,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
+import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.adapters.LeftMenuAdapter;
+import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.fragments.AddSceneFragment;
 import com.everhope.elighte.fragments.FragmentTabListener;
 import com.everhope.elighte.fragments.HomeFragment;
@@ -31,9 +34,15 @@ import com.everhope.elighte.fragments.SettingsFragment;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.fragments.SwitchFragment;
 import com.everhope.elighte.helpers.AppUtils;
+import com.everhope.elighte.helpers.MessageUtils;
+import com.everhope.elighte.models.GetAllStationsMsgResponse;
+import com.everhope.elighte.models.SubGroup;
+import com.everhope.elighte.models.Light;
+import com.everhope.elighte.models.LightGroup;
+import com.everhope.elighte.models.StationObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 
 /**
  * 主页面
@@ -66,8 +75,86 @@ public class MainActivity extends ActionBarActivity {
 
         //设置抽屉
         setLeftDrawer(savedInstanceState);
+        //与网关同步数据
+        syncDataWithGate();
     }
 
+    /**
+     * 与网关同步数据
+     */
+    private void syncDataWithGate() {
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        dataAgent.getAllLights(MainActivity.this, new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                    //读到了回应消息
+                    byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                    //解析回应消息
+                    GetAllStationsMsgResponse getAllStationsMsgResponse = MessageUtils.decomposeGetAllStationsMsgResponse(msgBytes, msgBytes.length);
+                    Log.i(TAG, "获取所有站点列表回应消息 " + getAllStationsMsgResponse.toString());
+                    //取出当前数据库表中的所有站点进行比对
+                    //新增 或 删除
+                    List<Light> allLights = Light.getAll();
+                    StationObject[] gateAllLights = getAllStationsMsgResponse.getStationObjects();
+                    int length = gateAllLights.length;
+//                    //判断删除
+//                    for (Light light : allLights) {
+//
+//                        for(int i = 0; i < length; i++) {
+//                            if (light.lightID.equals(gateAllLights[i].getId()+"")) {
+//                                break;
+//                            } else if (i == length - 1) {
+//                                //删除
+//                                light.delete();
+//                            }
+//                        }
+//                    }
+                    //判断新增
+                    if (allLights.size() == 0) {
+                        for (StationObject stationObject : gateAllLights) {
+                            Light newLight = new Light();
+                            newLight.lightID = stationObject.getId() + "";
+                            newLight.name = stationObject.getId() + "";
+                            //新增的灯加入到未分组 组中
+                            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
+                            LightGroup lightGroup = new LightGroup();
+                            lightGroup.light = newLight;
+                            lightGroup.subgroup = ungroup;
+                            newLight.save();
+                            lightGroup.save();
+                        }
+                    }
+                    for (StationObject stationObject : gateAllLights) {
+                        for (int j = 0; j < allLights.size(); j++) {
+
+                            Light light = allLights.get(j);
+                            if (light.lightID.equals(stationObject.getId() + "")) {
+                                break;
+                            } else if (j == (allLights.size() - 1)) {
+                                //新增
+                                Light newLight = new Light();
+                                newLight.lightID = stationObject.getId() + "";
+                                newLight.name = stationObject.getId() + "";
+                                //新增的灯加入到未分组 组中
+                                SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
+                                LightGroup lightGroup = new LightGroup();
+                                lightGroup.light = newLight;
+                                lightGroup.subgroup = ungroup;
+                                newLight.save();
+                                lightGroup.save();
+                            }
+                        }
+                    }
+                } else {
+                    //出错
+                    Log.e(TAG, String.format("获取所有站点列表出错 Code=[%s]", resultCode + ""));
+                }
+            }
+        });
+
+    }
     private void setLeftDrawer(Bundle savedInstanceState) {
         leftItems = getResources().getStringArray(R.array.left_nav_items);
         drawerLayout = (DrawerLayout)findViewById(R.id.main_drawer_layout);
@@ -134,7 +221,7 @@ public class MainActivity extends ActionBarActivity {
                 break;
             case 1:
                 //打开灯
-                fragment = LightFragment.newInstance("我的灯");
+                fragment = LightFragment.newInstance("");
                 break;
             case 2:
                 //开关配置
