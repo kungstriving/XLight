@@ -2,8 +2,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.everhope.elighte.activities.SceneEditActivity">
-    <item android:id="@+id/action_sceneedit_save"
-        android:icon="@drawable/ic_action_save"
+    <item android:id="@+id/action_sceneedit_add"
+        android:icon="@drawable/ic_action_new"
         android:title="@string/action_sceneedit_save"
         android:orderInCategory="100" app:showAsAction="ifRoom" />
 </menu>

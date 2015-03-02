@@ -10,9 +10,9 @@
         android:layout_height="24dp"
         android:layout_margin="5dp"
         android:layout_gravity="center_vertical"
-        android:src="@drawable/light_icon"/>
+        android:src="@drawable/subgroup"/>
     <TextView
-        android:id="@+id/light_name_tv"
+        android:id="@+id/subgroup_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceListItemSmall"

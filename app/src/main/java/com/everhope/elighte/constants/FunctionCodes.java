@@ -8,6 +8,30 @@ package com.everhope.elighte.constants;
 public class FunctionCodes {
 
     /**
+     * 站点
+     */
+    public static enum Station {
+        //加入站点操作
+        ADD_STATION(Byte.decode("0x40")),
+
+        //删除站点
+        DEL_STATION(Byte.decode("0x41")),
+        //进入站点识别
+        ENTER_STATION_IDENTIFY(Byte.decode("0x42")),
+        //退出站点识别
+        EXIT_STATION_IDENTIFY(Byte.decode("0x43"));
+
+        private byte funcCode;
+
+        private Station(byte code) {
+            this.funcCode = code;
+        }
+
+        public byte getFuncCode() {
+            return this.funcCode;
+        }
+    }
+    /**
      * 遥调功能码
      */
     public static enum RemoteTurn {

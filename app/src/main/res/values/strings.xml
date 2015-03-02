@@ -180,8 +180,12 @@
     <string name="fragment_light">我的灯</string>
     <string name="fragment_settings">设置</string>
     <string name="title_activity_scene_edit">场景编辑</string>
-    <string name="action_sceneedit_save">保存</string>
+    <string name="action_sceneedit_save">添加灯</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="title_activity_search_gate">SearchGateActivity</string>
+    <string name="title_activity_light_list">LightListActivity</string>
+    <string name="title_activity_choose_light">ChooseLightActivity</string>
 
+    <drawable name="color_selected">#DAA520</drawable>
+    <drawable name="color_normal">#F5F5F5</drawable>
 </resources>

@@ -58,7 +58,7 @@ public class AppUtils {
 
         //新建分组
         SubGroup ungroup = new SubGroup();
-        ungroup.name = "未分组";
+        ungroup.name = "所有灯";
         ungroup.save();
 
 //        //新建三个灯

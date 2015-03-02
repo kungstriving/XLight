@@ -10,15 +10,13 @@ import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
 import android.view.DragEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -28,23 +26,35 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.everhope.elighte.R;
+import com.everhope.elighte.XLightApplication;
+import com.everhope.elighte.comm.DataAgent;
+import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
 
+import org.apache.commons.lang.ArrayUtils;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * 场景编辑Activity
+ * 可以增加场景中的灯，可以对场景中的灯调节颜色等
  */
 public class SceneEditActivity extends ActionBarActivity {
 
     private static final String TAG = "SceneEditActivity@Light";
 
+    /**
+     * 选择灯的标志 用来打开子活动
+     */
+    private final int REQUEST_CODE_CHOOSE_LIGHTS = 1;
     //选色板竖直向的偏移量
     private int colorPickerYOffset;
     //顶部logo图片
@@ -83,6 +93,8 @@ public class SceneEditActivity extends ActionBarActivity {
             this.scene = Scene.load(Scene.class, sceneID);
             this.lightScenes = scene.lightScenes();
             setTitle(scene.name);
+        } else {
+            Toast.makeText(SceneEditActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
         }
         //设置顶部底色变化
         this.topIVHandler = new Handler() {
@@ -90,6 +102,8 @@ public class SceneEditActivity extends ActionBarActivity {
             public void handleMessage(Message msg) {
 
                 int colorInt = msg.what;
+                DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+
                 topIV.setBackgroundColor(colorInt);
                 //发送消息
 
@@ -332,8 +346,40 @@ public class SceneEditActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
+    }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_CHOOSE_LIGHTS && resultCode == Constants.COMMON.RESULT_CODE_OK) {
+            long []ids = data.getLongArrayExtra("lights_selected_ids");
 
+            List<Long> listIDs = new ArrayList<>();
+            for(int i = 0; i < ids.length; i++) {
+                listIDs.add(ids[i]);
+            }
+
+            for(LightScene lightScene : lightScenes) {
+                Long id = lightScene.light.getId();
+                if (listIDs.contains(id)) {
+                    listIDs.remove(id);
+                }
+            }
+
+            //将选中的灯加入到该场景中
+            for(Long newID : listIDs) {
+                Light newLight = Light.load(Light.class, newID);
+                LightScene newLightScene = new LightScene();
+                newLightScene.light = newLight;
+                newLightScene.scene = this.scene;
+                newLightScene.save();
+
+            }
+
+            this.lightScenes = this.scene.lightScenes();
+            loaded = false;
+            this.onWindowFocusChanged(true);
+            Toast.makeText(SceneEditActivity.this, Arrays.toString(ids), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -351,6 +397,11 @@ public class SceneEditActivity extends ActionBarActivity {
         int id = item.getItemId();
 
         switch (id) {
+            case R.id.action_sceneedit_add:
+                Intent intent = new Intent(SceneEditActivity.this, ChooseLightActivity.class);
+                intent.putExtra("subgroup_id",1);
+                startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
+                return true;
             case R.id.home:
                 finish();
                 return true;

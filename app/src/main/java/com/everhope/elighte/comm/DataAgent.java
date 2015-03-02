@@ -40,6 +40,8 @@ public class DataAgent {
         return this.outputStream;
     }
 
+    ///////////////////////////// 通信接口定义 ///////////////////////////////////
+
     /**
      * 服务发现
      * @param context
@@ -96,8 +98,23 @@ public class DataAgent {
         CommIntentService.startActionSetGateNetwork(context, receiver, ssid, pwd);
     }
 
+    /**
+     * 获取所有灯列表
+     * @param context
+     * @param receiver
+     */
     public void getAllLights(Context context, ResultReceiver receiver) {
         CommIntentService.startActionGetAllLights(context, receiver);
+    }
+
+    /**
+     * 进入站点识别
+     * @param context
+     * @param receiver
+     * @param stationID
+     */
+    public void enterStationIdentify(Context context, ResultReceiver receiver, String stationID) {
+        CommIntentService.startActionEnterStationId(context, receiver, stationID);
     }
 
     /**
@@ -141,6 +158,9 @@ public class DataAgent {
             }
         }
     }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     /**
      * 私有构造函数
      */

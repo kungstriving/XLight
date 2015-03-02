@@ -12,6 +12,7 @@ import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.ClientLoginMsg;
+import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 
@@ -54,6 +55,11 @@ public class CommIntentService extends IntentService {
      */
     private static final String ACTION_GET_ALL_LIGHTS = "com.everhope.xlight.comm.action.get.all.lights";
 
+    /**
+     * 进入站点识别
+     */
+    private static final String ACTION_ENTER_STATION_ID = "com.everhope.xlight.comm.action.enter_stat_id";
+
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
      * 消息接收器
@@ -78,7 +84,29 @@ public class CommIntentService extends IntentService {
      */
     private static final String EXTRA_NET_PWD = "com.everhope.xlight.comm.extra.netpwd";
 
+    /**
+     * 站点ID
+     */
+    private static final String EXTRA_STATION_ID = "com.everhope.xlight.comm.extra.station.id";
+
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
+
+    /**
+     * 进入站点识别状态
+     *
+     * @param context
+     * @param receiver
+     * @param stationID 所要识别的站点ID
+     */
+    public static void startActionEnterStationId(Context context, ResultReceiver receiver, String stationID) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_ENTER_STATION_ID);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+        intent.putExtra(EXTRA_STATION_ID, stationID);
+
+        context.startService(intent);
+    }
+
     /**
      * 开始网络连接
      *
@@ -134,6 +162,14 @@ public class CommIntentService extends IntentService {
         context.startService(intent);
     }
 
+    /**
+     * 设置网关连接信息
+     *
+     * @param context
+     * @param receiver
+     * @param name
+     * @param pwd
+     */
     public static void startActionSetGateNetwork(Context context, ResultReceiver receiver, String name, String pwd) {
         Intent intent = new Intent(context, CommIntentService.class);
         intent.setAction(ACTION_SET_NETWORK);
@@ -205,6 +241,11 @@ public class CommIntentService extends IntentService {
                     //服务发现
                     handleActionServiceDis();
                     break;
+                case ACTION_ENTER_STATION_ID:
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    String stationID = intent.getStringExtra(EXTRA_STATION_ID);
+                    handleActionEnterStationID(stationID, receiver);
+                    break;
                 case ACTION_CONNECT:
                     //连接网关
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
@@ -225,9 +266,47 @@ public class CommIntentService extends IntentService {
         }
     }
 
-
     /////////////////////////////// 服务处理 ///////////////////////////////////
 
+    /**
+     * 进入站点识别
+     * @param stationID
+     * @param receiver
+     */
+    private void handleActionEnterStationID(String stationID, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        EnterStationIdentifyMsg enterStationIdMsg = MessageUtils.composeEnterStationIdentifyMsg(Short.parseShort(stationID));
+
+        Log.i(TAG, String.format("进入站点识别 消息[%s]", enterStationIdMsg.toString()));
+
+        byte[] bytes = enterStationIdMsg.toMessageByteArray();
+        short msgID = enterStationIdMsg.getMessageID();
+
+        try {
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+        }
+
+        receiver.send(resultCode, resultData);
+    }
 
     private void handleActionGetAllLights(ResultReceiver receiver) {
         int resultCode = 0;

@@ -4,6 +4,8 @@ import android.util.Log;
 
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.ClientLoginMsgResponse;
+import com.everhope.elighte.models.CommonMsgResponse;
+import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
@@ -108,6 +110,30 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
     public static SetGateNetworkMsgResponse decomposeSetGateReturnMsg(byte[] data, int length) {
         SetGateNetworkMsgResponse setGateNetworkMsgResponse = new SetGateNetworkMsgResponse(data);
         return setGateNetworkMsgResponse;
+    }
+
+    /**
+     * 组织生成进入站点识别消息
+     * @param objectID
+     * @return
+     */
+    public static EnterStationIdentifyMsg composeEnterStationIdentifyMsg(short objectID) {
+        EnterStationIdentifyMsg enterStationIdentifyMsg = new EnterStationIdentifyMsg();
+        enterStationIdentifyMsg.setObjectID(objectID);
+        enterStationIdentifyMsg.buildUp();
+
+        return enterStationIdentifyMsg;
+    }
+
+    /**
+     * 解析进入站点识别的返回消息
+     * @param data
+     * @param length
+     * @return
+     */
+    public static CommonMsgResponse decomposeEnterStationIdReturnMsg(byte[] data, int length) {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+        return commonMsgResponse;
     }
 
     /**

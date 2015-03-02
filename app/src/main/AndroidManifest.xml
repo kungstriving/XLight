@@ -8,47 +8,47 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name="com.everhope.elighte.XLightApplication"
+        android:name=".XLightApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name="com.everhope.elighte.activities.MainActivity"
+            android:name=".activities.MainActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait" >
         </activity>
         <activity
-            android:name="com.everhope.elighte.TestLight"
+            android:name=".TestLight"
             android:label="@string/title_activity_test_light"
-            android:parentActivityName="com.everhope.elighte.activities.MainActivity" >
+            android:parentActivityName=".activities.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
 
         <service
-            android:name="com.everhope.elighte.comm.CommIntentService"
+            android:name=".comm.CommIntentService"
             android:exported="false" >
         </service>
         <service
-            android:name="com.everhope.elighte.comm.UDPReceiveIntentService"
+            android:name=".comm.UDPReceiveIntentService"
             android:exported="false" >
         </service>
 
         <activity
-            android:name="com.everhope.elighte.activities.APSetupActivity"
+            android:name=".activities.APSetupActivity"
             android:label="@string/title_activity_apsetup"
-            android:parentActivityName="com.everhope.elighte.activities.MainActivity"
-            android:screenOrientation="portrait">
+            android:parentActivityName=".activities.MainActivity"
+            android:screenOrientation="portrait" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
         <activity
-            android:name="com.everhope.elighte.activities.LoadActivity"
+            android:name=".activities.LoadActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -57,38 +57,54 @@
         </activity>
 
         <service
-            android:name="com.everhope.elighte.comm.TCPReceiveIntentService"
+            android:name=".comm.TCPReceiveIntentService"
             android:exported="false" >
         </service>
 
         <activity
-            android:name="com.everhope.elighte.activities.SceneEditActivity"
+            android:name=".activities.SceneEditActivity"
             android:label="@string/title_activity_scene_edit"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
         <activity
-            android:name="com.everhope.elighte.activities.SettingsActivity"
+            android:name=".activities.SettingsActivity"
             android:label="@string/title_activity_settings" >
         </activity>
         <activity
-            android:name="com.everhope.elighte.activities.SearchGateActivity"
+            android:name=".activities.SearchGateActivity"
             android:label="@string/title_activity_search_gate" >
             <intent-filter>
-                <action android:name=".activities.SearchGateActivity"/>
-                <category android:name="android.intent.category.DEFAULT"/>
+                <action android:name=".activities.SearchGateActivity" />
+
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <meta-data android:name="AA_DB_NAME" android:value="elighte.db" />
-        <meta-data android:name="AA_DB_VERSION" android:value="1"/>
-        <meta-data android:name="AA_MODELS"
-            android:value="com.everhope.elighte.models.Scene,
-                        com.everhope.elighte.models.Light,
-                        com.everhope.elighte.models.SubGroup,
-                        com.everhope.elighte.models.LightGroup,
-                        com.everhope.elighte.models.LightScene"/>
+
+        <meta-data
+            android:name="AA_DB_NAME"
+            android:value="elighte.db" />
+        <meta-data
+            android:name="AA_DB_VERSION"
+            android:value="1" />
+        <meta-data
+            android:name="AA_MODELS"
+            android:value="com.everhope.elighte.models.Scene,                         com.everhope.elighte.models.Light,                         com.everhope.elighte.models.SubGroup,                         com.everhope.elighte.models.LightGroup,                         com.everhope.elighte.models.LightScene" />
+
+        <activity
+            android:name=".activities.LightListActivity"
+            android:label="@string/title_activity_light_list"
+            android:parentActivityName=".activities.MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.everhope.elighte.activities.MainActivity" />
+        </activity>
+        <activity
+            android:name=".activities.ChooseLightActivity"
+            android:label="@string/title_activity_choose_light" >
+        </activity>
     </application>
 
 </manifest>

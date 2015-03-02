@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -62,7 +64,7 @@ public class APSetupActivity extends ActionBarActivity {
         setSSIDBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(APSetupActivity.this, "设置网关连接网络", Toast.LENGTH_LONG).show();
+//                Toast.makeText(APSetupActivity.this, "设置网关连接网络", Toast.LENGTH_LONG).show();
                 //通知网关路由器密码
                 String ssid = ((EditText)findViewById(R.id.wifi_id)).getText().toString();
                 String pwd = ((EditText)findViewById(R.id.wifi_pwd)).getText().toString();
@@ -90,8 +92,8 @@ public class APSetupActivity extends ActionBarActivity {
 
                                 //设置成功 重新进入搜寻网关模式
                                 //TODO 这里需要进行重新搜寻 目前直接进入主页面
-                                //切换网络到原网络下
-                                swichConnectionToLast();
+                                //切换网络到原网络下 目前不用切换到原网络，直接使用AP网络进行使用
+//                                swichConnectionToLast();
                                 Intent intent = new Intent(APSetupActivity.this, MainActivity.class);
                                 startActivity(intent);
                                 finish();
@@ -158,8 +160,6 @@ public class APSetupActivity extends ActionBarActivity {
         switchConnectionToAP(APSetupActivity.this);
         //开始连接AP网关
         connectToGateAP();
-
-
     }
 
     private void swichConnectionToLast() {
@@ -175,11 +175,31 @@ public class APSetupActivity extends ActionBarActivity {
                 break;
             }
         }
+
+        while (true) {
+            ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+            if (mWifi.isConnected()) {
+                break;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Log.w(TAG, e.getMessage());
+            }
+        }
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void switchConnectionToAP(Context context) {
         String elighteSSID = Constants.SYSTEM_SETTINGS.GATE_AP_SSID;
-        String pwd = "55555555";
+        String pwd = "";
 
         WifiConfiguration wifiConfiguration = new WifiConfiguration();
         wifiConfiguration.SSID = "\"" + elighteSSID + "\"";
@@ -198,6 +218,21 @@ public class APSetupActivity extends ActionBarActivity {
                 wifiManager.reconnect();
 
                 break;
+            }
+        }
+
+        //等待监测是否成功
+        while (true) {
+            ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+            if (mWifi.isConnected()) {
+                break;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Log.w(TAG, e.getMessage());
             }
         }
     }
@@ -247,7 +282,7 @@ public class APSetupActivity extends ActionBarActivity {
             public void run() {
                 try {
                     //停止10秒 等待连接到AP网络
-                    Thread.sleep(10000);
+//                    Thread.sleep(10000);
                     dataAgent.buildConnection(Constants.SYSTEM_SETTINGS.GATE_AP_IP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
                     connHandler.sendEmptyMessage(0);
 
