@@ -31,11 +31,51 @@ public class FunctionCodes {
             return this.funcCode;
         }
     }
+
+    /**
+     * 遥信功能码
+     */
+    public static enum RemoteSignal {
+        //遥信
+        REMOTE_SIGNAL_OP(Byte.decode("0xB0")),
+
+        //////////////////// 子命令码
+
+        /**
+         * 设备状态
+         */
+        DEVICE_STATUS(Byte.decode("0x80")),
+        /**
+         * 设备开关
+         */
+        DEVICE_SWITCH(Byte.decode("0x01")),
+
+        /**
+         * 亮度调节
+         */
+        BRIGHTNESS_TURN(Byte.decode("0x30")),
+
+        /**
+         * 颜色调节
+         */
+        COLOR_TURN(Byte.decode("0x31"));
+
+        private byte funcCode;
+
+        private RemoteSignal(byte code) {
+            this.funcCode = code;
+        }
+
+        public byte getFuncCode() {
+            return this.funcCode;
+        }
+    }
+
     /**
      * 遥调功能码
      */
     public static enum RemoteTurn {
-        //单个站点操作
+        //遥调
         SINGLE_STATION_OP(Byte.decode("0x90")),
 
         /////////////////////////// 子命令码
@@ -96,6 +136,58 @@ public class FunctionCodes {
 
         public byte getFuncCode() {
             return this.funcCode;
+        }
+    }
+
+    public static enum SubFunctionCodes {
+
+        /**
+         * 设备状态
+         */
+        DEVICE_STATUS(Byte.decode("0x80")),
+        /**
+         * 设备开关
+         */
+        DEVICE_SWITCH(Byte.decode("0x01")),
+
+        /**
+         * 亮度调节
+         */
+        BRIGHTNESS_TURN(Byte.decode("0x30")),
+
+        /**
+         * 颜色调节
+         */
+        COLOR_TURN(Byte.decode("0x31"));
+
+        private byte funcCode;
+//        private byte deviceStatusByte = (byte)128;
+//        private
+
+        private SubFunctionCodes(byte code) {
+            this.funcCode = code;
+        }
+
+        public byte getFuncCode() {
+            return this.funcCode;
+        }
+
+        public static SubFunctionCodes fromSubFunctionCodeByte(byte code) {
+            switch (code) {
+                case (byte)128:
+                    //Byte.decode("0x80")
+
+                    return DEVICE_STATUS;
+                case 1:
+                    //Byte.decode("0x01")
+                    return DEVICE_SWITCH;
+                case 48:
+                    return BRIGHTNESS_TURN;
+                case 49:
+                    return COLOR_TURN;
+                default:
+                    return COLOR_TURN;
+            }
         }
     }
 }

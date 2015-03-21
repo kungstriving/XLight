@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.everhope.elighte" >
+    package="com.everhope.elighte">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -12,43 +12,28 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
         <activity
             android:name=".activities.MainActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait" >
-        </activity>
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".TestLight"
             android:label="@string/title_activity_test_light"
-            android:parentActivityName=".activities.MainActivity" >
+            android:parentActivityName=".activities.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
-
-        <service
-            android:name=".comm.CommIntentService"
-            android:exported="false" >
-        </service>
-        <service
-            android:name=".comm.UDPReceiveIntentService"
-            android:exported="false" >
-        </service>
 
         <activity
             android:name=".activities.APSetupActivity"
             android:label="@string/title_activity_apsetup"
-            android:parentActivityName=".activities.MainActivity"
-            android:screenOrientation="portrait" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.everhope.elighte.activities.MainActivity" />
-        </activity>
+            android:screenOrientation="portrait"></activity>
         <activity
             android:name=".activities.LoadActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -56,32 +41,53 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".comm.TCPReceiveIntentService"
-            android:exported="false" >
-        </service>
-
         <activity
             android:name=".activities.SceneEditActivity"
             android:label="@string/title_activity_scene_edit"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.everhope.elighte.activities.MainActivity" />
         </activity>
         <activity
             android:name=".activities.SettingsActivity"
-            android:label="@string/title_activity_settings" >
-        </activity>
+            android:label="@string/title_activity_settings"/>
         <activity
             android:name=".activities.SearchGateActivity"
-            android:label="@string/title_activity_search_gate" >
+            android:label="@string/title_activity_search_gate">
             <intent-filter>
                 <action android:name=".activities.SearchGateActivity" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activities.LightListActivity"
+            android:label="@string/title_activity_light_list"
+            android:parentActivityName=".activities.MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.everhope.elighte.activities.MainActivity" />
+        </activity>
+        <activity
+            android:name=".activities.ChooseLightActivity"
+            android:label="@string/title_activity_choose_light" />
+
+        <service
+            android:name=".services.SyncIntentService"
+            android:exported="false" />
+        <service
+            android:name=".comm.TCPReceiveIntentService"
+            android:exported="false"/>
+        <service
+            android:name=".comm.CommIntentService"
+            android:exported="false"/>
+        <service
+            android:name=".comm.UDPReceiveIntentService"
+            android:exported="false"/>
+
+        <receiver android:name=".receivers.SyncStationAlarmReceiver"
+            android:process=":remote"/>
 
         <meta-data
             android:name="AA_DB_NAME"
@@ -91,20 +97,7 @@
             android:value="1" />
         <meta-data
             android:name="AA_MODELS"
-            android:value="com.everhope.elighte.models.Scene,                         com.everhope.elighte.models.Light,                         com.everhope.elighte.models.SubGroup,                         com.everhope.elighte.models.LightGroup,                         com.everhope.elighte.models.LightScene" />
-
-        <activity
-            android:name=".activities.LightListActivity"
-            android:label="@string/title_activity_light_list"
-            android:parentActivityName=".activities.MainActivity" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.everhope.elighte.activities.MainActivity" />
-        </activity>
-        <activity
-            android:name=".activities.ChooseLightActivity"
-            android:label="@string/title_activity_choose_light" >
-        </activity>
+            android:value="com.everhope.elighte.models.Scene,                           com.everhope.elighte.models.Light,                           com.everhope.elighte.models.SubGroup,                           com.everhope.elighte.models.LightGroup,                           com.everhope.elighte.models.LightScene" />
     </application>
 
 </manifest>

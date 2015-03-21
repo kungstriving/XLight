@@ -92,10 +92,11 @@ public class DataAgent {
      * @param context
      * @param receiver
      * @param ssid
+     * @param securityType 已经转换为协议中固定的字符串，无需再更改
      * @param pwd
      */
-    public void setGateNetwork(Context context, ResultReceiver receiver, String ssid, String pwd) {
-        CommIntentService.startActionSetGateNetwork(context, receiver, ssid, pwd);
+    public void setGateNetwork(Context context, String ssid, String securityType, String pwd,ResultReceiver receiver) {
+        CommIntentService.startActionSetGateNetwork(context, receiver, ssid, securityType, pwd);
     }
 
     /**
@@ -117,6 +118,26 @@ public class DataAgent {
         CommIntentService.startActionEnterStationId(context, receiver, stationID);
     }
 
+    /**
+     * 退出站点识别
+     * @param context
+     * @param receiver
+     * @param stationID
+     */
+    public void exitStationIdentify(Context context, String stationID, ResultReceiver receiver) {
+        CommIntentService.startActionExitStationId(context, receiver, stationID);
+    }
+
+    /**
+     * 你的公式rgb转换的hsb，三个都是float，并且取值都是0~1，你将这hsb都乘以254
+     * @param context
+     * @param stationID
+     * @param hsb
+     * @param receiver
+     */
+    public void setStationColor(Context context, String stationID, int[] hsb, ResultReceiver receiver) {
+
+    }
     /**
      * 创建到网关的TCP连接
      * @param serverHost 服务器地址

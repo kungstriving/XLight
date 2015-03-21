@@ -27,6 +27,9 @@ public class Light extends Model{
     @Column(name="LIGHT_ID")
     public String lightID;
 
+    @Column(name="LIGHT_MAC")
+    public String lightMac;
+
     public List<LightGroup> lightGroups() {
         return getMany(LightGroup.class, "GROUP");
     }

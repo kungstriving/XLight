@@ -1,10 +1,13 @@
 package com.everhope.elighte.helpers;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.util.Log;
 import android.view.View;
 
 import com.everhope.elighte.XLightApplication;
@@ -25,6 +28,19 @@ public class AppUtils {
     private static final String TAG = "AppUtils@Light";
 
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
+
+    /**
+     * 检测当前wifi是否开启
+     * 注意 不是wifi是否连接
+     * @param context
+     * @return
+     */
+    public static boolean checkWifiIfOpen(Context context) {
+
+        ConnectivityManager connManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        return mWifi.isAvailable();
+    }
 
     public static void initDB () {
         //新建四个场景

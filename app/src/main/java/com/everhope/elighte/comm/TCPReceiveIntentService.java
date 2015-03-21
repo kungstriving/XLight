@@ -11,6 +11,7 @@ import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.constants.Constants;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -104,7 +105,7 @@ public class TCPReceiveIntentService extends IntentService {
             resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
         } catch (IOException e) {
             e.printStackTrace();
-            Log.w(TAG, e.getMessage());
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
             resultCode = Constants.COMMON.EC_NETWORK_ERROR;
         }
         receiver.send(resultCode, resultData);

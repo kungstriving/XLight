@@ -14,7 +14,8 @@
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp">
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="10dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -30,6 +31,31 @@
                 android:layout_marginRight="10dp"
                 android:layout_weight="0.3"
                 android:id="@+id/wifi_id" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_weight="0.7"
+                android:layout_margin="10dp"
+                android:text="安全性" />
+
+            <Spinner
+                android:id="@+id/wifi_security"
+                android:layout_width="match_parent"
+                android:layout_weight="0.3"
+                android:layout_marginRight="10dp"
+                android:layout_height="wrap_content"
+                android:entries="@array/wifi_security_arr"
+                 />
         </LinearLayout>
 
         <LinearLayout

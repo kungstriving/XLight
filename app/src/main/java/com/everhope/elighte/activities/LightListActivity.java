@@ -14,6 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -94,14 +95,19 @@ public class LightListActivity extends ActionBarActivity {
 
                             //弹出对话框进行输入
                             EditText editText = new EditText(LightListActivity.this);
-                            editText.setFocusable(true);
-                            editText.requestFocus();
+
                             RenameLightListener renameLightListener = new RenameLightListener(light,view,editText);
-                            new AlertDialog.Builder(LightListActivity.this).setTitle("重命名").setIcon(android.R.drawable.ic_menu_edit)
+                            RenameLightCancelListener renameLightCancelListener = new RenameLightCancelListener(light);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(LightListActivity.this).setTitle("重命名").setIcon(android.R.drawable.ic_menu_edit)
                                     .setView(editText)
                                     .setPositiveButton("确定", renameLightListener)
-                                    .setNegativeButton("取消",null)
-                                    .show();
+                                    .setNegativeButton("取消", renameLightCancelListener);
+                            AlertDialog alertDialog = builder.create();
+                            alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+                            alertDialog.show();
+
+                            editText.setFocusable(true);
+                            editText.requestFocus();
                         } else {
                             Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
                             Log.w(TAG, "错误码 " + resultCode);
@@ -112,6 +118,49 @@ public class LightListActivity extends ActionBarActivity {
 //                Toast.makeText(LightListActivity.this, "light id" + light.lightID, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    class RenameLightCancelListener implements DialogInterface.OnClickListener {
+
+        private Light light;
+        public RenameLightCancelListener(Light light) {
+            this.light = light;
+        }
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            exitStationId();
+        }
+
+        private void exitStationId() {
+            //退出站点识别
+            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+            dataAgent.exitStationIdentify(LightListActivity.this, this.light.lightID, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                        //读到了回应消息
+                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        //解析回应消息
+                        CommonMsgResponse exitStationIdReturnMsg = MessageUtils.decomposeExitStationIdReturnMsg(msgBytes, msgBytes.length);
+                        //检测消息ID
+                        short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                        if (exitStationIdReturnMsg.getMessageID() != msgRandID) {
+                            Log.w(TAG, "消息ID不匹配");
+                            return;
+                        }
+                        if (exitStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                            Log.w(TAG, String.format("消息返回错误-[%s]", exitStationIdReturnMsg.getReturnCode() + ""));
+                            return;
+                        }
+
+                        Log.i(TAG, String.format("退出站点识别-回应消息[%s]", exitStationIdReturnMsg.toString()));
+                    } else {
+                        Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "错误码 " + resultCode);
+                    }
+                }
+            });
+        }
     }
 
     class RenameLightListener implements DialogInterface.OnClickListener {
@@ -132,7 +181,40 @@ public class LightListActivity extends ActionBarActivity {
             TextView textView = (TextView)view.findViewById(R.id.light_name_tv);
             textView.setText(newName);
             //存储Light
+            this.light.name = newName;
+            this.light.save();
+            exitStationId();
+        }
+
+        private void exitStationId() {
             //退出站点识别
+            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+            dataAgent.exitStationIdentify(LightListActivity.this, this.light.lightID, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                        //读到了回应消息
+                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        //解析回应消息
+                        CommonMsgResponse exitStationIdReturnMsg = MessageUtils.decomposeExitStationIdReturnMsg(msgBytes, msgBytes.length);
+                        //检测消息ID
+                        short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                        if (exitStationIdReturnMsg.getMessageID() != msgRandID) {
+                            Log.w(TAG, "消息ID不匹配");
+                            return;
+                        }
+                        if (exitStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                            Log.w(TAG, String.format("消息返回错误-[%s]", exitStationIdReturnMsg.getReturnCode() + ""));
+                            return;
+                        }
+
+                        Log.i(TAG, String.format("退出站点识别-回应消息[%s]", exitStationIdReturnMsg.toString()));
+                    } else {
+                        Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "错误码 " + resultCode);
+                    }
+                }
+            });
         }
     }
 

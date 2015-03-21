@@ -6,6 +6,9 @@ import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.ClientLoginMsgResponse;
 import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
+import com.everhope.elighte.models.ExitStationIdentifyMsg;
+import com.everhope.elighte.models.GetAllLightsStatusMsg;
+import com.everhope.elighte.models.GetAllLightsStatusMsgResponse;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
@@ -28,6 +31,32 @@ public class MessageUtils {
 
     //报文特征码
     public static short messageSign = 0;
+
+    ////////////////////////////////////// 消息生成与解析 /////////////////////////////
+
+    /**
+     * 组织生成 退出站点识别 消息
+     * @param objectID
+     * @return
+     */
+    public static ExitStationIdentifyMsg composeExitStationIdentifyMsg(short objectID) {
+        ExitStationIdentifyMsg exitStationIdentifyMsg = new ExitStationIdentifyMsg();
+        exitStationIdentifyMsg.setObjectID(objectID);
+        exitStationIdentifyMsg.buildUp();
+
+        return exitStationIdentifyMsg;
+    }
+
+    /**
+     * 解析 退出站点识别的返回消息
+     * @param data
+     * @param length
+     * @return
+     */
+    public static CommonMsgResponse decomposeExitStationIdReturnMsg(byte[] data, int length) {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+        return commonMsgResponse;
+    }
 
     /**
      * 生成服务发现报文
@@ -91,7 +120,7 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
      * @param pwd
      * @return
      */
-    public static SetGateNetworkMsg composeSetGateMsg(String ssid, String pwd) {
+    public static SetGateNetworkMsg composeSetGateMsg(String ssid,String securityType, String pwd) {
         SetGateNetworkMsg setGateNetworkMsg = new SetGateNetworkMsg();
         setGateNetworkMsg.setSsid(ssid);
         setGateNetworkMsg.setPwd(pwd);
@@ -156,6 +185,22 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
     public static GetAllStationsMsgResponse decomposeGetAllStationsMsgResponse(byte[] data, int length) {
         GetAllStationsMsgResponse getAllStationsMsgResponse = new GetAllStationsMsgResponse(data);
         return getAllStationsMsgResponse;
+    }
+
+    /**
+     * 获取所有灯状态消息
+     *
+     * @return
+     */
+    public static GetAllLightsStatusMsg composeGetAllLightsStatusMsg() {
+        GetAllLightsStatusMsg getAllLightsStatusMsg = new GetAllLightsStatusMsg();
+        getAllLightsStatusMsg.buildUp();
+        return getAllLightsStatusMsg;
+    }
+
+    public static GetAllLightsStatusMsgResponse decomposeGetAllLightsStatusResponse(byte[] data, int length) {
+        GetAllLightsStatusMsgResponse getAllLightsStatusMsgResponse = new GetAllLightsStatusMsgResponse(data);
+        return getAllLightsStatusMsgResponse;
     }
 
     ////////////////////////////////////// 通用方法 ////////////////////////////////////

@@ -1,0 +1,64 @@
+package com.everhope.elighte.models;
+
+import com.everhope.elighte.constants.FunctionCodes;
+
+/**
+ * 子命令对象
+ * Created by kongxiaoyang on 2015/3/21.
+ */
+public class StationSubCmd {
+    private static FunctionCodes.SubFunctionCodes subFunctionCode;
+
+    /**
+     * 从字节数组获取站点子命令定义
+     * 一个站点子命令由四个字节组成
+     * @param bytes
+     * @return
+     */
+    public static StationSubCmd getStationSubCmdFromBytes(byte[] bytes) {
+//        if (bytes.length != 4) {
+//            throw new Exception("站点子命令消息解析错误");
+//        }
+
+        //获取子命令类型
+        byte subCmdType = bytes[3];
+        subFunctionCode = FunctionCodes.SubFunctionCodes.fromSubFunctionCodeByte(subCmdType);
+        switch (subFunctionCode) {
+            case DEVICE_STATUS:
+                StationDeviceStatusCmd stationDeviceStatusCmd = new StationDeviceStatusCmd();
+                stationDeviceStatusCmd.setFlags(bytes[0]);
+                return stationDeviceStatusCmd;
+            case DEVICE_SWITCH:
+                StationDeviceSwitchCmd stationDeviceSwitchCmd = new StationDeviceSwitchCmd();
+                if (bytes[0] == 1) {
+                    stationDeviceSwitchCmd.setSwitchStatus(true);
+                } else {
+                    stationDeviceSwitchCmd.setSwitchStatus(false);
+                }
+                return stationDeviceSwitchCmd;
+            case BRIGHTNESS_TURN:
+                StationBrightTurnCmd stationBrightTurnCmd = new StationBrightTurnCmd();
+                stationBrightTurnCmd.setBrightValue(bytes[0]);
+                return stationBrightTurnCmd;
+
+            case COLOR_TURN:
+                StationColorTurnCmd stationColorTurnCmd = new StationColorTurnCmd();
+                stationColorTurnCmd.setH(bytes[2]);
+                stationColorTurnCmd.setS(bytes[1]);
+                stationColorTurnCmd.setB(bytes[0]);
+                return stationColorTurnCmd;
+
+            default:
+                return null;
+
+        }
+    }
+
+    public FunctionCodes.SubFunctionCodes getSubFunctionCode() {
+        return subFunctionCode;
+    }
+
+    public void setSubFunctionCode(FunctionCodes.SubFunctionCodes subFunctionCode) {
+        this.subFunctionCode = subFunctionCode;
+    }
+}

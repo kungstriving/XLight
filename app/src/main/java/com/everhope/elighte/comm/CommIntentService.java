@@ -13,9 +13,11 @@ import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
+import com.everhope.elighte.models.ExitStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
@@ -58,7 +60,12 @@ public class CommIntentService extends IntentService {
     /**
      * 进入站点识别
      */
-    private static final String ACTION_ENTER_STATION_ID = "com.everhope.xlight.comm.action.enter_stat_id";
+    private static final String ACTION_ENTER_STATION_ID = "com.everhope.xlight.comm.action.enter.stat.id";
+
+    /**
+     * 退出站点识别
+     */
+    private static final String ACTION_EXIT_STATION_ID = "com.everhope.xlight.comm.action.exit.stat.id";
 
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
@@ -76,9 +83,14 @@ public class CommIntentService extends IntentService {
     private static final String EXTRA_CLIENTID = "com.everhope.xlight.comm.extra.clientid";
 
     /**
-     * 设置网关的网络名称
+     * 家庭路由器的网络名称
      */
     private static final String EXTRA_SSID = "com.everhope.xlight.comm.extra.ssid";
+
+    /**
+     * 家庭路由器网络安全类型 WPAPSK or WPA2PSK or OPEN
+     */
+    private static final String EXTRA_SECURITY_TYPE = "com.everhope.xlight.comm.extra.security.type";
     /**
      * 网络密码
      */
@@ -90,6 +102,15 @@ public class CommIntentService extends IntentService {
     private static final String EXTRA_STATION_ID = "com.everhope.xlight.comm.extra.station.id";
 
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
+
+    public static void startActionExitStationId(Context context, ResultReceiver receiver, String stationID) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_EXIT_STATION_ID);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+        intent.putExtra(EXTRA_STATION_ID, stationID);
+
+        context.startService(intent);
+    }
 
     /**
      * 进入站点识别状态
@@ -167,14 +188,15 @@ public class CommIntentService extends IntentService {
      *
      * @param context
      * @param receiver
-     * @param name
+     * @param ssid
      * @param pwd
      */
-    public static void startActionSetGateNetwork(Context context, ResultReceiver receiver, String name, String pwd) {
+    public static void startActionSetGateNetwork(Context context, ResultReceiver receiver, String ssid, String securityType, String pwd) {
         Intent intent = new Intent(context, CommIntentService.class);
         intent.setAction(ACTION_SET_NETWORK);
         intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
-        intent.putExtra(EXTRA_SSID, name);
+        intent.putExtra(EXTRA_SSID, ssid);
+        intent.putExtra(EXTRA_SECURITY_TYPE, securityType);
         intent.putExtra(EXTRA_NET_PWD, pwd);
 
         context.startService(intent);
@@ -246,6 +268,12 @@ public class CommIntentService extends IntentService {
                     String stationID = intent.getStringExtra(EXTRA_STATION_ID);
                     handleActionEnterStationID(stationID, receiver);
                     break;
+                case ACTION_EXIT_STATION_ID:
+                    //退出站点识别
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    String stationIDToExit = intent.getStringExtra(EXTRA_STATION_ID);
+                    handleActionExitStationID(stationIDToExit, receiver);
+                    break;
                 case ACTION_CONNECT:
                     //连接网关
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
@@ -256,8 +284,9 @@ public class CommIntentService extends IntentService {
                     //设置网关的网络密码
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     String ssid = intent.getStringExtra(EXTRA_SSID);
+                    String securityType = intent.getStringExtra(EXTRA_SECURITY_TYPE);
                     String pwd = intent.getStringExtra(EXTRA_NET_PWD);
-                    handleActionSetNetwork(ssid, pwd, receiver);
+                    handleActionSetNetwork(ssid,securityType, pwd, receiver);
                     break;
                 default:
                     break;
@@ -266,7 +295,48 @@ public class CommIntentService extends IntentService {
         }
     }
 
+
     /////////////////////////////// 服务处理 ///////////////////////////////////
+
+    /**
+     * 退出站点识别
+     * @param stationIDToExit
+     * @param receiver
+     */
+    private void handleActionExitStationID(String stationIDToExit, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        ExitStationIdentifyMsg exitStationMsg = MessageUtils.composeExitStationIdentifyMsg(Short.parseShort(stationIDToExit));
+
+        Log.i(TAG, String.format("退出站点识别-消息[%s]", exitStationMsg.toString()));
+
+        byte[] bytes = exitStationMsg.toMessageByteArray();
+        short msgID = exitStationMsg.getMessageID();
+
+        try {
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+        }
+
+        receiver.send(resultCode, resultData);
+    }
 
     /**
      * 进入站点识别
@@ -301,6 +371,7 @@ public class CommIntentService extends IntentService {
             resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
             resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
         } catch (IOException e) {
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
         }
@@ -319,6 +390,7 @@ public class CommIntentService extends IntentService {
         GetAllStationsMsg getAllLightsMsg = MessageUtils.composeGetAllStationsMsg();
 
         Log.i(TAG, String.format("获取所有灯列表消息[%s]", getAllLightsMsg.toString()));
+//        Log.i(TAG, String.format("获取所有灯列表消息字节数组[%s]", Hex.encodeHexString(getAllLightsMsg.toMessageByteArray())));
 
         byte[] bytes = getAllLightsMsg.toMessageByteArray();
         short msgID = getAllLightsMsg.getMessageID();
@@ -336,6 +408,7 @@ public class CommIntentService extends IntentService {
             resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
             resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
         } catch (IOException e) {
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
         }
@@ -343,7 +416,7 @@ public class CommIntentService extends IntentService {
         receiver.send(resultCode, resultData);
     }
 
-    private void handleActionSetNetwork(String ssid, String pwd, ResultReceiver receiver) {
+    private void handleActionSetNetwork(String ssid,String securityType, String pwd, ResultReceiver receiver) {
         int resultCode = 0;
         Bundle resultData = new Bundle();
 
@@ -351,7 +424,7 @@ public class CommIntentService extends IntentService {
         OutputStream os = dataAgent.getOutputStream();
         InputStream is = dataAgent.getInputStream();
 
-        SetGateNetworkMsg setGateNetworkMsg = MessageUtils.composeSetGateMsg(ssid, pwd);
+        SetGateNetworkMsg setGateNetworkMsg = MessageUtils.composeSetGateMsg(ssid,securityType, pwd);
 
         Log.i(TAG, String.format("设置网关网络密码消息[%s]", setGateNetworkMsg.toString()));
 
@@ -373,6 +446,7 @@ public class CommIntentService extends IntentService {
         } catch (IOException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
         }
 
         receiver.send(resultCode, resultData);
@@ -525,6 +599,7 @@ public class CommIntentService extends IntentService {
         } catch (SocketException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+
             resultCode = Constants.COMMON.EC_NETWORK_NOFOUND_STA_GATE;
 
         } catch (UnknownHostException e) {

@@ -52,7 +52,9 @@ public class Constants {
         /**
          * 网关SSID
          */
-        public static final String GATE_AP_SSID = "USR-WIFI232-T";
+        public static final String[] GATE_AP_SSID_ARR =
+                new String[] {"USR-WIFI232-S", "USR-WIFI232-T",
+                        "USR-WIFI232-G","USR-WIFI232-G2","USR-WIFI232-H"};
 
         /**
          * 网关sta地址
@@ -84,6 +86,11 @@ public class Constants {
          * 读取数据超时8秒
          */
         public static final int NETWORK_DATA_SOTIMEOUT = 8000;
+
+        /**
+         * 同步数据间隔5秒
+         */
+        public static final int SYNC_INTERVAL = 5000;
 
         /**
          * 建立连接超时

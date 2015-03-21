@@ -79,6 +79,8 @@ public class SceneEditActivity extends ActionBarActivity {
     private Scene scene;
     //是否已经加载过界面的标志
     private boolean loaded = false;
+    //是否向网关发送颜色消息
+    private boolean sendColor = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,7 +108,11 @@ public class SceneEditActivity extends ActionBarActivity {
 
                 topIV.setBackgroundColor(colorInt);
                 //发送消息
-
+                if (sendColor == true) {
+                    //发送颜色
+                    //颜色发送成功后，开始计时
+                    //颜色发送接收到返回消息，改变topIV颜色
+                }
             }
         };
 

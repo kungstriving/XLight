@@ -61,7 +61,7 @@ public class LoadActivity extends ActionBarActivity {
     }
 
     /**
-     * 直接通过AP网络连接和登录
+     * 使用sta地址连接
      */
     private void connectToGate(final String gateIP, final int port) {
         final DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
@@ -101,7 +101,6 @@ public class LoadActivity extends ActionBarActivity {
                                         //登录网关
                                         logonToGate(Constants.SYSTEM_SETTINGS.GATE_AP_IP);
                                     }
-
 
                                 } else {
                                     //出错

@@ -21,6 +21,7 @@ public class SetGateNetworkMsg extends Message{
     private static final String TAG = "SetGateNetworkMsg@Light";
 
     private String ssid = "";
+    private String securityType = "";
     private String pwd = "";
 
     public SetGateNetworkMsg() {}
@@ -43,33 +44,34 @@ public class SetGateNetworkMsg extends Message{
         setObjectID(gateID);
 
         //set data region
-        ByteBuffer byteBuffer = ByteBuffer.allocate(64);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(160);
         //设置网络id
         byte[] ssidBytes = this.ssid.getBytes();
-//        try {
-//            ssidBytes = Hex.decodeHex(this.ssid.toCharArray());
-//        } catch (DecoderException e) {
-//            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
-//
-//        }
         byte[] ssidData = new byte[32];
         Arrays.fill(ssidData, Byte.parseByte("0"));
         System.arraycopy(ssidBytes, 0, ssidData, 0, ssidBytes.length);
         byteBuffer.put(ssidData);
 
+        //设置认证方式
+        byte[] secTypeBytes = this.securityType.getBytes();
+        byte[] secTypeData = new byte[32];
+        Arrays.fill(secTypeData, Byte.parseByte("0"));
+        System.arraycopy(secTypeBytes, 0, secTypeData, 0, secTypeBytes.length);
+        byteBuffer.put(secTypeData);
+
         //设置网络密码
         byte[] pwdBytes = this.pwd.getBytes();
-//        try {
-//            pwdBytes = Hex.decodeHex(this.pwd.toCharArray());
-//        } catch (DecoderException e) {
-//            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
-//
-//        }
-        byte[] pwdData = new byte[32];
+        byte[] pwdData = new byte[64];
         Arrays.fill(pwdData, Byte.parseByte("0"));
         System.arraycopy(pwdBytes,0,pwdData,0,pwdBytes.length);
         byteBuffer.put(pwdData);
 
+        //设置保留域
+        byte[] reserveData = new byte[32];
+        Arrays.fill(reserveData, Byte.parseByte("0"));
+        byteBuffer.put(reserveData);
+
+        //设置整个数据域
         setData(byteBuffer.array());
 
         short crc = 0;
@@ -93,5 +95,12 @@ public class SetGateNetworkMsg extends Message{
 
     public void setPwd(String pwd) {
         this.pwd = pwd;
+    }
+    public String getSecurityType() {
+        return securityType;
+    }
+
+    public void setSecurityType(String securityType) {
+        this.securityType = securityType;
     }
 }

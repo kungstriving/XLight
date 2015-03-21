@@ -256,7 +256,7 @@ public class Message {
         setAppToGate(true);
         setAck(false);
         setSliceError(false);
-        setSliceMore(true);
+        setSliceMore(false);
         setSliceMessageID((short)0);
     }
 

@@ -1,7 +1,11 @@
 package com.everhope.elighte.activities;
 
+import android.app.AlarmManager;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -40,6 +44,7 @@ import com.everhope.elighte.models.SubGroup;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
 import com.everhope.elighte.models.StationObject;
+import com.everhope.elighte.receivers.SyncStationAlarmReceiver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,6 +89,7 @@ public class MainActivity extends ActionBarActivity {
      */
     private void syncDataWithGate() {
 
+        //同步一次 站点信息
         DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
         dataAgent.getAllLights(MainActivity.this, new ResultReceiver(new Handler()) {
             @Override
@@ -96,24 +102,54 @@ public class MainActivity extends ActionBarActivity {
                     Log.i(TAG, "获取所有站点列表回应消息 " + getAllStationsMsgResponse.toString());
                     //取出当前数据库表中的所有站点进行比对
                     //新增 或 删除
-                    List<Light> allLights = Light.getAll();
+                    List<Light> myLights = Light.getAll();
                     StationObject[] gateAllLights = getAllStationsMsgResponse.getStationObjects();
                     int length = gateAllLights.length;
-//                    //判断删除
-//                    for (Light light : allLights) {
-//
-//                        for(int i = 0; i < length; i++) {
-//                            if (light.lightID.equals(gateAllLights[i].getId()+"")) {
-//                                break;
-//                            } else if (i == length - 1) {
-//                                //删除
-//                                light.delete();
-//                            }
-//                        }
-//                    }
+                    //判断删除
+                    for (Light light : myLights) {
+
+                        boolean delete = true;
+                        for(int i = 0; i < length; i++) {
+                            if (light.lightMac.equals(gateAllLights[i].getMac())) {
+                                delete = false;
+                                break;
+                            }
+                        }
+                        if (delete) {
+                            light.delete();
+                        }
+                    }
                     //判断新增
-                    if (allLights.size() == 0) {
+                    if (myLights.size() == 0) {
                         for (StationObject stationObject : gateAllLights) {
+                            Light newLight = new Light();
+                            newLight.lightID = stationObject.getId() + "";
+                            newLight.name = stationObject.getId() + "[" + stationObject.getMac() + "]";
+                            newLight.lightMac = stationObject.getMac();
+                            //新增的灯加入到未分组 组中
+                            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
+                            LightGroup lightGroup = new LightGroup();
+                            lightGroup.light = newLight;
+                            lightGroup.subgroup = ungroup;
+                            newLight.save();
+                            lightGroup.save();
+                        }
+                    }
+                    for (StationObject stationObject : gateAllLights) {
+                        boolean add = true;
+
+                        for (int j = 0; j < myLights.size(); j++) {
+
+                            Light light = myLights.get(j);
+                            if (light.lightMac.equals(stationObject.getMac())) {
+                                //已存在 不用新增
+                                add = false;
+                                break;
+                            }
+                        }
+
+                        if (add) {
+                            //新增
                             Light newLight = new Light();
                             newLight.lightID = stationObject.getId() + "";
                             newLight.name = stationObject.getId() + "";
@@ -126,27 +162,6 @@ public class MainActivity extends ActionBarActivity {
                             lightGroup.save();
                         }
                     }
-                    for (StationObject stationObject : gateAllLights) {
-                        for (int j = 0; j < allLights.size(); j++) {
-
-                            Light light = allLights.get(j);
-                            if (light.lightID.equals(stationObject.getId() + "")) {
-                                break;
-                            } else if (j == (allLights.size() - 1)) {
-                                //新增
-                                Light newLight = new Light();
-                                newLight.lightID = stationObject.getId() + "";
-                                newLight.name = stationObject.getId() + "";
-                                //新增的灯加入到未分组 组中
-                                SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
-                                LightGroup lightGroup = new LightGroup();
-                                lightGroup.light = newLight;
-                                lightGroup.subgroup = ungroup;
-                                newLight.save();
-                                lightGroup.save();
-                            }
-                        }
-                    }
                 } else {
                     //出错
                     Log.e(TAG, String.format("获取所有站点列表出错 Code=[%s]", resultCode + ""));
@@ -154,6 +169,17 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
+        //启动周期性同步数据
+        Intent intent = new Intent(getApplicationContext(), SyncStationAlarmReceiver.class);
+        final PendingIntent pIntent = PendingIntent.getBroadcast(this, SyncStationAlarmReceiver.REQUEST_CODE,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        long firstMillis = System.currentTimeMillis(); // first run of alarm is immediate
+        int intervalMillis = Constants.SYSTEM_SETTINGS.SYNC_INTERVAL;
+        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis, intervalMillis, pIntent);
+
+        Log.i(TAG, "启动周期同步服务");
+        //各个站点状态
     }
     private void setLeftDrawer(Bundle savedInstanceState) {
         leftItems = getResources().getStringArray(R.array.left_nav_items);
@@ -323,9 +349,16 @@ public class MainActivity extends ActionBarActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onDestroy() {
+        super.onDestroy();
+        //停止服务
+        Log.i(TAG, "停止周期同步服务");
 
+        Intent intent = new Intent(getApplicationContext(), SyncStationAlarmReceiver.class);
+        final PendingIntent pIntent = PendingIntent.getBroadcast(this, SyncStationAlarmReceiver.REQUEST_CODE,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarm.cancel(pIntent);
     }
 
     @Override

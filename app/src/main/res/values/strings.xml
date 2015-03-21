@@ -26,6 +26,12 @@
         <item>设置</item>
     </string-array>
 
+    <string-array name="wifi_security_arr">
+        <item>WPA2 PSK</item>
+        <item>WPA PSK</item>
+        <item>无</item>
+    </string-array>
+
     <string name="title_activity_load">LoadActivity</string>
 
     <color name="main_back">#303238</color>
