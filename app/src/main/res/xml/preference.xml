@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <Preference android:title="我的网关"
-        android:key="pref_gateinfo"
-        android:summary="00:11:22:33:44:55:66:77" />
-    <Preference android:title="搜寻网关" >
-        <intent android:action=".activities.SearchGateActivity"/>
-    </Preference>
+    <PreferenceCategory android:title="我的网关">
+        <Preference android:title="网关IP"
+            android:key="ss_gate_sta_ip" />
+        <Preference android:title="物理地址"
+            android:key="ss_gate_mac"/>
+        <Preference android:title="网关版本"
+            android:key="ss_gate_ver" />
+        <Preference android:title="网关信息"
+            android:key="ss_gate_desc"/>
+    </PreferenceCategory>
 
-    <CheckBoxPreference android:title="调试"
-        android:defaultValue="false"
-        android:key="pref_debug" />
-    <Preference android:key="pref_about"
-        android:title="关于" />
+    <PreferenceCategory android:title="我的灯">
+        <Preference android:title="搜索新灯" >
+            <intent android:action=".activities.SearchGateActivity"/>
+        </Preference>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="E-Lighte">
+        <CheckBoxPreference android:title="调试"
+            android:defaultValue="false"
+            android:key="pref_debug" />
+        <Preference android:key="pref_about"
+            android:title="关于" />
+    </PreferenceCategory>
+
 </PreferenceScreen>

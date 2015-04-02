@@ -5,8 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -17,13 +20,21 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.everhope.elighte.R;
+import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.activities.SceneEditActivity;
+import com.everhope.elighte.comm.DataAgent;
+import com.everhope.elighte.constants.Constants;
+import com.everhope.elighte.helpers.MessageUtils;
+import com.everhope.elighte.models.CommonMsgResponse;
+import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,6 +42,8 @@ import java.util.List;
  * Created by kongxiaoyang on 2015/1/13.
  */
 public class HomeFragment extends Fragment{
+
+    private static final String TAG = "HomeFragment@Light";
 
     private ScrollView homeContentSV;
 
@@ -135,6 +148,13 @@ public class HomeFragment extends Fragment{
                         startActivity(intent);
                     }
                 });
+
+                //添加场景亮度调节
+                SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
+                seekBar.setProgress(scene.brightness);
+
+                BrightChangeListener brightChangeListener = new BrightChangeListener(scene);
+                seekBar.setOnSeekBarChangeListener(brightChangeListener);
             }
         });
 
@@ -158,5 +178,86 @@ public class HomeFragment extends Fragment{
      */
     private List<Scene> getStoredSceneInfo() {
         return Scene.getAll();
+    }
+
+    class BrightChangeListener implements SeekBar.OnSeekBarChangeListener {
+        private boolean sendBright = true;
+        private DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+
+        private Handler sendBrightHandler = new Handler();
+        private Runnable sendBrightRunnable = new Runnable() {
+            @Override
+            public void run() {
+                sendBright = true;
+            }
+        };
+        private Scene pScene;
+        private short[] stationIDs;
+        private int stationCount;
+        public BrightChangeListener(Scene scene) {
+            this.pScene = scene;
+            List<LightScene> lightScenes = scene.lightScenes();
+            stationCount = lightScenes.size();
+            stationIDs = new short[lightScenes.size()];
+            for (int i = 0; i < stationIDs.length; i++) {
+                stationIDs[i] = Short.parseShort(lightScenes.get(i).light.lightID);
+            }
+        }
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, final int progress, boolean fromUser) {
+            if (sendBright) {
+                Log.d(TAG, "亮度调节度 " + progress);
+                sendBright = false;
+                float temp = progress/100f;
+                int brightValue = (int)Math.floor(temp*254f + 0.5);
+                byte[] brights = new byte[stationCount];
+                Arrays.fill(brights, (byte)brightValue);
+
+                dataAgent.setMultiStationBrightness(getActivity(),stationIDs, brights, new ResultReceiver(new Handler()) {
+                    @Override
+                    protected void onReceiveResult(int resultCode, Bundle resultData) {
+                        if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                            //读到了回应消息
+                            byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                            //解析回应消息
+                            CommonMsgResponse msgResponse = MessageUtils.decomposeMultiStationBrightControlResponse(msgBytes, msgBytes.length);
+                            //检测消息ID
+                            short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                            if (msgResponse.getMessageID() != msgRandID) {
+                                Log.w(TAG, "消息ID不匹配");
+                                return;
+                            }
+                            //检测操作结果
+                            if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                                Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                                Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            //设置正确
+                            //调整数据库中该场景的亮度值
+                            pScene.brightness = progress;
+                            pScene.save();
+                        } else {
+                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
+                            Log.w(TAG, "错误码 " + resultCode);
+                        }
+                    }
+                });
+                //500毫秒之后再接收消息
+                sendBrightHandler.postDelayed(sendBrightRunnable, 500);
+            }
+
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+
+        }
     }
 }

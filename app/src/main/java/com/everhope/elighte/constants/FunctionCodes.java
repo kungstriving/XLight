@@ -37,14 +37,14 @@ public class FunctionCodes {
      */
     public static enum RemoteSignal {
         //遥信
-        REMOTE_SIGNAL_OP(Byte.decode("0xB0")),
+        REMOTE_SIGNAL_OP((byte)-80),
 
         //////////////////// 子命令码
 
         /**
          * 设备状态
          */
-        DEVICE_STATUS(Byte.decode("0x80")),
+        DEVICE_STATUS((byte)-128),
         /**
          * 设备开关
          */
@@ -75,8 +75,8 @@ public class FunctionCodes {
      * 遥调功能码
      */
     public static enum RemoteTurn {
-        //遥调
-        SINGLE_STATION_OP(Byte.decode("0x90")),
+        //遥调 0x90
+        SINGLE_STATION_OP((byte)-112),
 
         /////////////////////////// 子命令码
 
@@ -144,7 +144,7 @@ public class FunctionCodes {
         /**
          * 设备状态
          */
-        DEVICE_STATUS(Byte.decode("0x80")),
+        DEVICE_STATUS((byte)-128),
         /**
          * 设备开关
          */
@@ -158,7 +158,12 @@ public class FunctionCodes {
         /**
          * 颜色调节
          */
-        COLOR_TURN(Byte.decode("0x31"));
+        COLOR_TURN(Byte.decode("0x31")),
+
+        /**
+         * 错误类型
+         */
+        WRONG_CODE(Byte.decode("0x00"));
 
         private byte funcCode;
 //        private byte deviceStatusByte = (byte)128;
@@ -186,7 +191,7 @@ public class FunctionCodes {
                 case 49:
                     return COLOR_TURN;
                 default:
-                    return COLOR_TURN;
+                    return WRONG_CODE;
             }
         }
     }

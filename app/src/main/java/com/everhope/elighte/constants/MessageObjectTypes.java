@@ -12,6 +12,9 @@ package com.everhope.elighte.constants;
 public enum MessageObjectTypes {
 
     GATE(Byte.decode("0x00")),
+    /**
+     * 站点对象 04
+     */
     STATION(Byte.decode("0x04")),
     GROUP(Byte.decode("0x05")),
     REGION(Byte.decode("0x06")),

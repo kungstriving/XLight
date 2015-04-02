@@ -19,24 +19,24 @@ public class LightScene extends Model{
     /**
      * R
      */
-    @Column(name="R")
-    public int R;
+    @Column(name="R_COLOR")
+    public int rColor;
 
     /**
      * G
      */
-    @Column(name = "G")
-    public int G;
+    @Column(name="G_COLOR")
+    public int gColor;
 
     /**
      * B
      */
-    @Column(name = "B")
-    public int B;
+    @Column(name="B_COLOR")
+    public int bColor;
 
-    @Column(name = "x")
+    @Column(name="x")
     public int x;
-    @Column(name = "y")
+    @Column(name="y")
     public int y;
 
     public List<Light> lights() {

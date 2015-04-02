@@ -2,6 +2,8 @@ package com.everhope.elighte.models;
 
 import com.everhope.elighte.constants.StationTypes;
 
+import org.apache.commons.codec.binary.Hex;
+
 /**
  * Created by kongxiaoyang on 2015/2/25.
  */
@@ -13,6 +15,10 @@ public class StationObject {
 
     public short getId() {
         return id;
+    }
+
+    public String getIdStr() {
+        return Integer.toHexString(id).hashCode() + "";
     }
 
     public void setId(short id) {

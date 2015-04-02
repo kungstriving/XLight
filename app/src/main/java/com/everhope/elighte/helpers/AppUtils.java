@@ -1,6 +1,7 @@
 package com.everhope.elighte.helpers;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
 import android.net.NetworkInfo;
@@ -10,13 +11,17 @@ import android.os.Build;
 import android.util.Log;
 import android.view.View;
 
+import com.everhope.elighte.R;
 import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.models.SubGroup;
 import com.everhope.elighte.models.Scene;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.net.util.SubnetUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,6 +33,25 @@ public class AppUtils {
     private static final String TAG = "AppUtils@Light";
 
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
+
+    private static final Map<Integer, String> errorMap = new HashMap<>();
+
+    static {
+        errorMap.put(12293, "该灯当前不可用");
+    }
+
+    public static String getMACString(byte[] mac) {
+        char[] macChar = Hex.encodeHex(mac);
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < macChar.length; i++) {
+            sb.append(macChar[i]);
+            if ((i % 2 != 0) && (i != (macChar.length -1))) {
+                sb.append(":");
+            }
+        }
+
+        return sb.toString();
+    }
 
     /**
      * 检测当前wifi是否开启
@@ -77,85 +101,10 @@ public class AppUtils {
         ungroup.name = "所有灯";
         ungroup.save();
 
-//        //新建三个灯
-//        Light light1 = new Light();
-//        light1.lightID = "0001";
-//        light1.name="0001";
-//        light1.save();
-//
-//        Light light2 = new Light();
-//        light2.lightID = "0002";
-//        light2.name="0002";
-//        light2.save();
-//
-//        Light light3 = new Light();
-//        light3.lightID = "0003";
-//        light3.name="0003";
-//        light3.save();
-//
-//        //每个场景包含三个灯
-//        LightScene lightScene = new LightScene();
-//        lightScene.light = light1;
-//        lightScene.scene = sunsetScene;
-//        lightScene.save();
-//
-//        LightScene lightScene1 = new LightScene();
-//        lightScene1.light = light2;
-//        lightScene1.scene = sunsetScene;
-//        lightScene1.save();
-//
-//        LightScene lightScene2 = new LightScene();
-//        lightScene2.light = light3;
-//        lightScene2.scene = sunsetScene;
-//        lightScene2.save();
-//
-//        //
-//        lightScene = new LightScene();
-//        lightScene.light = light1;
-//        lightScene.scene = seaScene;
-//        lightScene.save();
-//
-//        lightScene1 = new LightScene();
-//        lightScene1.light = light2;
-//        lightScene1.scene = seaScene;
-//        lightScene1.save();
-//
-//        lightScene2 = new LightScene();
-//        lightScene2.light = light3;
-//        lightScene2.scene = seaScene;
-//        lightScene2.save();
-//
-//        //
-//        lightScene = new LightScene();
-//        lightScene.light = light1;
-//        lightScene.scene = forestScene;
-//        lightScene.save();
-//
-//        lightScene1 = new LightScene();
-//        lightScene1.light = light2;
-//        lightScene1.scene = forestScene;
-//        lightScene1.save();
-//
-//        lightScene2 = new LightScene();
-//        lightScene2.light = light3;
-//        lightScene2.scene = forestScene;
-//        lightScene2.save();
-//
-//        //
-//        lightScene = new LightScene();
-//        lightScene.light = light1;
-//        lightScene.scene = rainbowScene;
-//        lightScene.save();
-//
-//        lightScene1 = new LightScene();
-//        lightScene1.light = light2;
-//        lightScene1.scene = rainbowScene;
-//        lightScene1.save();
-//
-//        lightScene2 = new LightScene();
-//        lightScene2.light = light3;
-//        lightScene2.scene = rainbowScene;
-//        lightScene2.save();
+    }
+
+    public static String getErrorInfo(String key) {
+        return errorMap.get(Integer.parseInt(key));
     }
 
     public static int generateViewId() {
@@ -222,5 +171,135 @@ public class AppUtils {
                 ((addr >>>= 8) & 0xFF) + "." +
                 ((addr >>>= 8) & 0xFF) + "." +
                 ((addr >>>= 8) & 0xFF));
+    }
+
+    public static int hsbColorValueToRGB(byte[] hsb) {
+        byte h = hsb[0];
+        byte s = hsb[1];
+        byte b = hsb[2];
+        float hFloat = (float)(((int)h)-0.5)/254f;
+        float sFloat = (float)(((int)s)-0.5)/254f;
+        float bFloat = (float)(((int)b)-0.5)/254f;
+        return HSBtoRGB(hFloat, sFloat, bFloat);
+    }
+
+    /**
+     * HSB is exactly the same as HSV
+     * 将颜色值转换为协议中相关的值范围
+     * @param colorValue
+     * @return
+     */
+    public static byte[] rgbColorValueToHSB(int colorValue) {
+        byte[] hsb = new byte[3];
+        float[] tempHSB = new float[3];
+        RGBtoHSB(Color.red(colorValue), Color.green(colorValue), Color.blue(colorValue), tempHSB);
+//        RGBtoHSB(255,0,0,tempHSB);
+        int hValue = (int)Math.floor(tempHSB[0] * 254 + 0.5);
+        hsb[0] = (byte)hValue;
+        int sValue = (int)Math.floor(tempHSB[1] * 254 + 0.5);
+        hsb[1] = (byte)sValue;
+        int bValue = (int)Math.floor(tempHSB[2] * 254 + 0.5);
+        hsb[2] = (byte)bValue;
+
+        return hsb;
+    }
+
+    /**
+     * copy from java.awt.Color.java
+     * @param hue
+     * @param saturation
+     * @param brightness
+     * @return
+     */
+    private static int HSBtoRGB(float hue, float saturation, float brightness) {
+        int r = 0, g = 0, b = 0;
+        if (saturation == 0) {
+            r = g = b = (int) (brightness * 255.0f + 0.5f);
+        } else {
+            float h = (hue - (float)Math.floor(hue)) * 6.0f;
+            float f = h - (float)java.lang.Math.floor(h);
+            float p = brightness * (1.0f - saturation);
+            float q = brightness * (1.0f - saturation * f);
+            float t = brightness * (1.0f - (saturation * (1.0f - f)));
+            switch ((int) h) {
+                case 0:
+                    r = (int) (brightness * 255.0f + 0.5f);
+                    g = (int) (t * 255.0f + 0.5f);
+                    b = (int) (p * 255.0f + 0.5f);
+                    break;
+                case 1:
+                    r = (int) (q * 255.0f + 0.5f);
+                    g = (int) (brightness * 255.0f + 0.5f);
+                    b = (int) (p * 255.0f + 0.5f);
+                    break;
+                case 2:
+                    r = (int) (p * 255.0f + 0.5f);
+                    g = (int) (brightness * 255.0f + 0.5f);
+                    b = (int) (t * 255.0f + 0.5f);
+                    break;
+                case 3:
+                    r = (int) (p * 255.0f + 0.5f);
+                    g = (int) (q * 255.0f + 0.5f);
+                    b = (int) (brightness * 255.0f + 0.5f);
+                    break;
+                case 4:
+                    r = (int) (t * 255.0f + 0.5f);
+                    g = (int) (p * 255.0f + 0.5f);
+                    b = (int) (brightness * 255.0f + 0.5f);
+                    break;
+                case 5:
+                    r = (int) (brightness * 255.0f + 0.5f);
+                    g = (int) (p * 255.0f + 0.5f);
+                    b = (int) (q * 255.0f + 0.5f);
+                    break;
+            }
+        }
+        return 0xff000000 | (r << 16) | (g << 8) | (b << 0);
+    }
+
+    /**
+     * copy from java.awt.Color.java
+     *
+     * @param r
+     * @param g
+     * @param b
+     * @param hsbvals [0]=h [1]=s [2]=b
+     * @return
+     */
+    private static float[] RGBtoHSB(int r, int g, int b, float[] hsbvals) {
+        float hue, saturation, brightness;
+        if (hsbvals == null) {
+            hsbvals = new float[3];
+        }
+        int cmax = (r > g) ? r : g;
+        if (b > cmax) cmax = b;
+        int cmin = (r < g) ? r : g;
+        if (b < cmin) cmin = b;
+
+        brightness = ((float) cmax) / 255.0f;
+        if (cmax != 0)
+            saturation = ((float) (cmax - cmin)) / ((float) cmax);
+        else
+            saturation = 0;
+        if (saturation == 0)
+            hue = 0;
+        else {
+            float redc = ((float) (cmax - r)) / ((float) (cmax - cmin));
+            float greenc = ((float) (cmax - g)) / ((float) (cmax - cmin));
+            float bluec = ((float) (cmax - b)) / ((float) (cmax - cmin));
+            if (r == cmax)
+                hue = bluec - greenc;
+            else if (g == cmax)
+                hue = 2.0f + redc - bluec;
+            else
+                hue = 4.0f + greenc - redc;
+            hue = hue / 6.0f;
+            if (hue < 0)
+                hue = hue + 1.0f;
+        }
+        hsbvals[0] = hue;
+        hsbvals[1] = saturation;
+        hsbvals[2] = brightness;
+        return hsbvals;
     }
 }

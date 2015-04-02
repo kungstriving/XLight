@@ -12,12 +12,16 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.everhope.elighte.R;
 import com.everhope.elighte.activities.LightListActivity;
 import com.everhope.elighte.models.SubGroup;
 import com.everhope.elighte.models.LightGroup;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -27,6 +31,7 @@ public class LightFragment extends Fragment {
 
     private static final String ARG_HELLO_LIGHT = "hello_light";
 
+    private LightGroupListAdapter lightGroupListAdapter;
     /**
      *
      * @param paramHelloLight
@@ -42,45 +47,6 @@ public class LightFragment extends Fragment {
     }
 
     public LightFragment() {
-        // Required empty public constructor
-//        groupArray = new ArrayList<>();
-//        childArray = new ArrayList<>();
-//
-//        groupArray.add("卧室");
-//        groupArray.add("客厅");
-//        groupArray.add("未分组");
-//
-//        List<String> tempArray = new ArrayList<>();
-//        tempArray.add("00001");
-//        tempArray.add("00002");
-//        tempArray.add("00003");
-//        tempArray.add("00004");
-//        tempArray.add("00005");
-//        tempArray.add("00006");
-//
-//        //add 卧室
-//        childArray.add(tempArray);
-//
-//        tempArray = new ArrayList<>();
-//        tempArray.add("10001");
-//        tempArray.add("10002");
-//        tempArray.add("10003");
-//        tempArray.add("10004");
-//        tempArray.add("10005");
-//        tempArray.add("10006");
-//
-//        //add 客厅
-//        childArray.add(tempArray);
-//        //add 未分组
-//        tempArray = new ArrayList<>();
-//        tempArray.add("20001");
-//        tempArray.add("20002");
-//        tempArray.add("20003");
-//        tempArray.add("20004");
-//        tempArray.add("20005");
-//        tempArray.add("20006");
-//
-//        childArray.add(tempArray);
     }
 
     @Override
@@ -110,22 +76,33 @@ public class LightFragment extends Fragment {
                 }
         });
         //get light groups
-        List<SubGroup> groups = getLightGroups();
-        LightGroupListAdapter lightGroupListAdapter = new LightGroupListAdapter(getActivity(), groups);
-
+        ArrayList<SubGroup> groups = getLightGroups();
+        Collections.sort(groups, new SubGroupComparator());
+        lightGroupListAdapter = new LightGroupListAdapter(getActivity(), groups);
+        lightGroupListAdapter.setNotifyOnChange(true);
         listView.setAdapter(lightGroupListAdapter);
 
         getActivity().setTitle(R.string.light_fragment_title);
+
         return rootView;
     }
 
-    private List<SubGroup> getLightGroups() {
-        return SubGroup.getAll();
+    private ArrayList<SubGroup> getLightGroups() {
+        ArrayList<SubGroup> list = new ArrayList<>();
+        List<SubGroup> temp = SubGroup.getAll();
+        for (SubGroup subGroup : temp) {
+            list.add(subGroup);
+        }
+        return list;
     }
 
     class LightGroupListAdapter extends ArrayAdapter<SubGroup> {
         public LightGroupListAdapter(Context context, List<SubGroup> groups) {
             super(context,0,groups);
+        }
+
+        public LightGroupListAdapter(Context context, int resID, List<SubGroup> groups) {
+            super(context, resID, groups);
         }
 
         @Override
@@ -138,135 +115,26 @@ public class LightFragment extends Fragment {
             SubGroup group = getItem(position);
             List<LightGroup> lightGroups = group.lightGroups();
             String groupName = group.name + "(" + lightGroups.size() + ")";
-
             TextView textView = (TextView)convertView.findViewById(R.id.subgroup_name);
             textView.setText(groupName);
             return convertView;
         }
     }
-//    class LightExpandableListAdapter extends BaseExpandableListAdapter {
-//
-//        Activity activity;
-//        public LightExpandableListAdapter(Activity activity) {
-//            this.activity = activity;
-//        }
-//
-//        @Override
-//        public Object getChild(int groupPosition, int childPosition) {
-//            return childArray.get(groupPosition).get(childPosition);
-//        }
-//
-//        @Override
-//        public long getChildId(int groupPosition, int childPosition) {
-//            return childPosition;
-//        }
-//
-//        @Override
-//        public int getChildrenCount(int groupPosition) {
-//            return childArray.get(groupPosition).size();
-//        }
-//
-//        @Override
-//        public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
-//            String childName = childArray.get(groupPosition).get(childPosition);
-//
-//            final LinearLayout ll = new LinearLayout(getActivity());
-//            ll.setOrientation(LinearLayout.HORIZONTAL);
-//            ll.setPadding(96, 10, 0, 0);
-//            ll.setMinimumHeight(100);
-//            LinearLayout.LayoutParams textViewLayoutParams =
-//                    new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-//            TextView textView = new TextView(getActivity());
-//            textView.setText(childName);
-//            textView.setTextSize(24);
-////            textView.setHeight(64);
-//            /*
-//            此处textview 会遮住linearlayout 的OnChildClick事件 所以需要单独设置一个按钮，当用户长按该按钮时候进行拖放
-//             */
-//            ll.addView(textView, textViewLayoutParams);
-//            textView.setTag("drag");
-//            textView.setOnLongClickListener(new View.OnLongClickListener() {
-//                @Override
-//                public boolean onLongClick(View v) {
-//                    ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
-//
-//                    String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
-//                    ClipData dragData = new ClipData(v.getTag().toString(),
-//                            mimeTypes, item);
-//
-//                    // Instantiates the drag shadow builder.
-//                    View.DragShadowBuilder myShadow = new View.DragShadowBuilder(ll);
-//
-//                    // Starts the drag
-//                    v.startDrag(dragData,  // the data to be dragged
-//                            myShadow,  // the drag shadow builder
-//                            null,      // no need to use local data
-//                            0          // flags (not currently used, set to 0)
-//                    );
-//                    return false;
-//                }
-//            });
-//
-//
-//            return ll;
-//        }
-//
-//        @Override
-//        public Object getGroup(int groupPosition) {
-//            return groupArray.get(groupPosition);
-//        }
-//
-//        @Override
-//        public int getGroupCount() {
-//            return groupArray.size();
-//        }
-//
-//        @Override
-//        public long getGroupId(int groupPosition) {
-//            return groupPosition;
-//        }
-//
-//        @Override
-//        public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
-//            String groupName = groupArray.get(groupPosition);
-//
-//            LinearLayout ll = new LinearLayout(getActivity());
-//            ll.setOrientation(LinearLayout.HORIZONTAL);
-//            ll.setPadding(64, 0, 0, 0);
-//            ll.setBackgroundColor(Color.parseColor("gray"));
-//            TextView textView = new TextView(getActivity());
-//            textView.setText(groupName);
-//            textView.setTextSize(18);
-//
-//            ll.addView(textView);
-//
-//            return  ll;
-//        }
-//
-//        @Override
-//        public boolean hasStableIds() {
-//            return false;
-//        }
-//
-//        @Override
-//        public boolean isChildSelectable(int groupPosition, int childPosition) {
-//            return true;
-//        }
-//
-//        public TextView generateView(String string)
-//        {
-//            // Layout parameters for the ExpandableListView
-//            AbsListView.LayoutParams layoutParams = new  AbsListView.LayoutParams(
-//                    ViewGroup.LayoutParams.FILL_PARENT, 64 );
-//            TextView text = new  TextView(activity);
-//            text.setLayoutParams(layoutParams);
-//            // Center the text vertically
-//            text.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-//            // Set the text starting position
-//            text.setPadding(36 , 0 , 0 , 0 );
-//            text.setText(string);
-//            return  text;
-//        }
-//    }
 
+    public void addNewGroup(String newGroupName) {
+        SubGroup subGroup = new SubGroup();
+        subGroup.name = newGroupName;
+        subGroup.save();
+
+        lightGroupListAdapter.sort(new SubGroupComparator());
+        lightGroupListAdapter.add(subGroup);
+        lightGroupListAdapter.notifyDataSetChanged();
+    }
+
+    class SubGroupComparator implements Comparator<SubGroup>{
+        @Override
+        public int compare(SubGroup lhs, SubGroup rhs) {
+            return -lhs.getId().compareTo(rhs.getId());
+        }
+    }
 }

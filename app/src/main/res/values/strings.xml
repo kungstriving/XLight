@@ -33,7 +33,9 @@
     </string-array>
 
     <string name="title_activity_load">LoadActivity</string>
-
+    <!-- 错误码 -->
+    <string name="ec_12293">该灯目前不可用</string>
+<!-- ######################### 颜色 ############################### -->
     <color name="main_back">#303238</color>
     <color name="white">#FFFFFF</color> <!-- 白色 -->
     <color name="ivory">#FFFFF0</color> <!-- 象牙色 -->

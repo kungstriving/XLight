@@ -1,19 +1,25 @@
 package com.everhope.elighte.models;
 
+import org.apache.commons.codec.binary.Hex;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * 通用返回消息
- * Created by kongxiaoyang on 2015/3/2.
+ * 批量站点遥信回应消息
+ * Created by kongxiaoyang on 2015/3/26.
  */
-public class CommonMsgResponse extends Message {
-    public static short RETURN_CODE_OK = 0x0000;
-    public static short RETURN_CODE_FAIL = 0x1000;
+public class GetStationsStatusMsgResponse extends Message {
 
-    private short returnCode;
 
-    public CommonMsgResponse(byte[] bytes) {
+    private Map<Short, List<StationSubCmd>> map = new HashMap<>();
+
+
+    public GetStationsStatusMsgResponse(byte[] bytes) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -56,16 +62,32 @@ public class CommonMsgResponse extends Message {
     private void handleData(byte[] data) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(data);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        //命令返回码
-        short returnCode = byteBuffer.getShort();
-        setReturnCode(returnCode);
+        //获取返回站点数目
+        short stationCount = byteBuffer.getShort();
+        for(short i = 0; i < stationCount; i++) {
+            //取站点ID
+            short stationID = byteBuffer.getShort();
+            //取该站点子命令个数
+            short subCmdCount = byteBuffer.getShort();
+            List<StationSubCmd> list = new ArrayList<>();
+            for(short j = 0; j < subCmdCount; j++) {
+                //取站点子命令
+                byte[] stationSubCmdBytes = new byte[4];
+                byteBuffer.get(stationSubCmdBytes);
+                StationSubCmd stationSubCmd = StationSubCmd.getStationSubCmdFromBytes(stationSubCmdBytes);
+                if (stationSubCmd != null) {
+                    list.add(stationSubCmd);
+                }
+            }
+            this.map.put(stationID, list);
+        }
     }
 
-    public short getReturnCode() {
-        return returnCode;
+    public Map<Short, List<StationSubCmd>> getMap() {
+        return map;
     }
 
-    public void setReturnCode(short returnCode) {
-        this.returnCode = returnCode;
+    public void setMap(Map<Short, List<StationSubCmd>> map) {
+        this.map = map;
     }
 }

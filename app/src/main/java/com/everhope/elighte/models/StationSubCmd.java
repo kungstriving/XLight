@@ -21,16 +21,16 @@ public class StationSubCmd {
 //        }
 
         //获取子命令类型
-        byte subCmdType = bytes[3];
+        byte subCmdType = bytes[0];
         subFunctionCode = FunctionCodes.SubFunctionCodes.fromSubFunctionCodeByte(subCmdType);
         switch (subFunctionCode) {
             case DEVICE_STATUS:
                 StationDeviceStatusCmd stationDeviceStatusCmd = new StationDeviceStatusCmd();
-                stationDeviceStatusCmd.setFlags(bytes[0]);
+                stationDeviceStatusCmd.setFlags(bytes[3]);
                 return stationDeviceStatusCmd;
             case DEVICE_SWITCH:
                 StationDeviceSwitchCmd stationDeviceSwitchCmd = new StationDeviceSwitchCmd();
-                if (bytes[0] == 1) {
+                if (bytes[3] == 1) {
                     stationDeviceSwitchCmd.setSwitchStatus(true);
                 } else {
                     stationDeviceSwitchCmd.setSwitchStatus(false);
@@ -38,16 +38,17 @@ public class StationSubCmd {
                 return stationDeviceSwitchCmd;
             case BRIGHTNESS_TURN:
                 StationBrightTurnCmd stationBrightTurnCmd = new StationBrightTurnCmd();
-                stationBrightTurnCmd.setBrightValue(bytes[0]);
+                stationBrightTurnCmd.setBrightValue(bytes[3]);
                 return stationBrightTurnCmd;
 
             case COLOR_TURN:
                 StationColorTurnCmd stationColorTurnCmd = new StationColorTurnCmd();
-                stationColorTurnCmd.setH(bytes[2]);
-                stationColorTurnCmd.setS(bytes[1]);
-                stationColorTurnCmd.setB(bytes[0]);
+                stationColorTurnCmd.setH(bytes[1]);
+                stationColorTurnCmd.setS(bytes[2]);
+                stationColorTurnCmd.setB(bytes[3]);
                 return stationColorTurnCmd;
-
+            case WRONG_CODE:
+                return null;
             default:
                 return null;
 

@@ -32,6 +32,16 @@ public class Constants {
          * 网关连接失败 1002
          */
         public static final int EC_NETWORK_CONNET_FAIL = 1002;
+
+        /**
+         * 网络未连接 1003
+         */
+        public static final int EC_NETWORK_NO_CONNECTED = 1003;
+
+        /**
+         * 消息解析错误 1004
+         */
+        public static final int EC_MESSAGE_RESOLVE_FAILED = 1004;
     }
     /**
      * 系统设置
@@ -46,6 +56,15 @@ public class Constants {
          * 调试开关 在preference.xml 中定义调试开关 必须与其key对应
          */
         public static final String DEBUG = "pref_debug";
+
+        /**
+         * 网关mac
+         */
+        public static final String GATE_MAC = "ss_gate_mac";
+
+        public static final String GATE_VER = "ss_gate_ver";
+
+        public static final String GATE_DESC = "ss_gate_desc";
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -83,19 +102,54 @@ public class Constants {
         public static final int NETWORK_PKG_LENGTH = 1024;
 
         /**
+         * 广播服务发现超时时间 8秒
+         */
+        public static final int BROADCASE_SERVICE_DISCOVER_SOTIMEOUT = 8*1000;
+
+        /**
+         * 广播服务发现重试次数
+         */
+        public static final int BROADCAST_SERVICE_DISCOVER_RETRY_TIMES = 5;
+
+        /**
          * 读取数据超时8秒
          */
         public static final int NETWORK_DATA_SOTIMEOUT = 8000;
 
         /**
-         * 同步数据间隔5秒
+         * 读取超时30秒
          */
-        public static final int SYNC_INTERVAL = 5000;
+        public static final int NETWORK_DATA_LONG_SOTIMEOUT = 20000;
 
         /**
-         * 建立连接超时
+         * 同步数据间隔60秒
+         */
+        public static final int SYNC_INTERVAL = 3*60000;
+
+        /**
+         * 建立连接超时 16秒
          */
         public static final int NETWORK_CONNECT_TIMEOUT = 16*1000;
+
+        /**
+         * 发送数据出错情况下 重试次数
+         */
+        public static final int SEND_RETRY_TIMES = 3;
+
+        /**
+         * 数据发送间隔毫秒数
+         */
+        public static final int SEND_RETRY_INTERVAL_MS = 200;
+
+        /**
+         * 连接重试次数
+         */
+        public static final int CONNECT_RETRY_TIMES = 5;
+
+        /**
+         * 网关连接重试间隔毫秒数
+         */
+        public static final int CONNECT_RETRY_INTERVAL_MS = 500;
     }
 
     /**

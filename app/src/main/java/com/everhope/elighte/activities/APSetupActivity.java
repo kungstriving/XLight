@@ -64,27 +64,29 @@ public class APSetupActivity extends ActionBarActivity {
         progressBar.setVisibility(View.VISIBLE);
         setContentsStatus(false);
 
+
         //添加返回按钮
 //        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 //        getSupportActionBar().setHomeButtonEnabled(true);
-
-        //TODO
-        Button retryBtn = (Button)findViewById(R.id.retry_btn);
-        retryBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(APSetupActivity.this, MainActivity.class);
-                startActivity(intent);
-                finish();
-            }
-        });
+//
+//        Button retryBtn = (Button)findViewById(R.id.retry_btn);
+//        retryBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+////                Intent intent = new Intent(APSetupActivity.this, MainActivity.class);
+////                startActivity(intent);
+////                finish();
+//            }
+//        });
         Button setSSIDBtn = (Button)findViewById(R.id.set_ssid_btn);
         setSSIDBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
 //                Toast.makeText(APSetupActivity.this, "设置网关连接网络", Toast.LENGTH_LONG).show();
                 //通知网关路由器密码
-                String ssid = ((EditText)findViewById(R.id.wifi_id)).getText().toString();
+                final String ssid = ((EditText)findViewById(R.id.wifi_id)).getText().toString();
                 String pwd = ((EditText)findViewById(R.id.wifi_pwd)).getText().toString();
                 //WPA2 PSK or WPA PSK or 无
                 int securityPos = ((Spinner)findViewById(R.id.wifi_security)).getSelectedItemPosition();
@@ -113,13 +115,19 @@ public class APSetupActivity extends ActionBarActivity {
                                 return;
                             }
 
-                            //判断登录结果
+                            //判断结果
                             if (setGateNetworkMsgResponse.getReturnCode() == SetGateNetworkMsgResponse.RETURN_CODE_OK) {
 
                                 //设置成功 重新进入搜寻网关模式
                                 //切换网络到原网络下
                                 mainHandler.sendEmptyMessage(2);
-                                swichConnectionToLast();
+                                swichConnectionToLast(ssid);
+//                                //等候10秒 等待网关重置正常
+//                                try {
+//                                    Thread.sleep(10*1000);
+//                                } catch (InterruptedException e) {
+//                                    e.printStackTrace();
+//                                }
 
                             } else if (setGateNetworkMsgResponse.getReturnCode() == SetGateNetworkMsgResponse.RETURN_CODE_CONF_GATE_FAIL) {
                                 //设置网关失败
@@ -190,6 +198,7 @@ public class APSetupActivity extends ActionBarActivity {
                         setContentsStatus(true);
                         //返回到load页面重新加载
                         Intent intent = new Intent(APSetupActivity.this, LoadActivity.class);
+                        intent.putExtra(LoadActivity.CLEAR_RENEW, true);
                         startActivity(intent);
                         finish();
                         break;
@@ -197,7 +206,18 @@ public class APSetupActivity extends ActionBarActivity {
                         //连接到之前家庭网络错误
                         progressBar.setVisibility(View.INVISIBLE);
                         setContentsStatus(true);
-                        //TODO 家庭网关没有连接成功 提供重试
+                        builder = new AlertDialog.Builder(APSetupActivity.this);
+
+                        builder.setMessage("家庭网络连接失败，请检查网络设置");
+                        builder.setTitle("确认");
+                        builder.setPositiveButton("重试", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                mainHandler.sendEmptyMessage(2);
+                                swichConnectionToLast(lastSSID);
+                            }
+                        });
+                        builder.create().show();
                         break;
                     default:
                         break;
@@ -208,18 +228,23 @@ public class APSetupActivity extends ActionBarActivity {
         //切换连接wifi到AP网络
         switchConnectionToAP(APSetupActivity.this);
 
-
+//        Intent intent = new Intent(APSetupActivity.this, MainActivity.class);
+//        startActivity(intent);
+//        finish();
+        return;
     }
 
     private void setContentsStatus(boolean status) {
         findViewById(R.id.wifi_id).setEnabled(status);
         findViewById(R.id.wifi_pwd).setEnabled(status);
+        findViewById(R.id.wifi_security).setEnabled(status);
         findViewById(R.id.set_ssid_btn).setEnabled(status);
-        findViewById(R.id.retry_btn).setEnabled(status);
+//        findViewById(R.id.retry_btn).setEnabled(status);
     }
 
-    private void swichConnectionToLast() {
+    private void swichConnectionToLast(String ssid) {
 
+        lastSSID = ssid;
         final APSetupActivity apSetupActivity = APSetupActivity.this;
         new Thread(new Runnable() {
             @Override
@@ -260,7 +285,7 @@ public class APSetupActivity extends ActionBarActivity {
                     checkCount++;
                     //wifiManager.reconnect();
                     try {
-                        Thread.sleep(500);
+                        Thread.sleep(3000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -373,8 +398,16 @@ public class APSetupActivity extends ActionBarActivity {
                                 if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                                     //读到了回应消息
                                     byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                                    short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                                     //解析回应消息
-                                    ServiceDiscoverMsg serviceDiscoverMsg = MessageUtils.decomposeServiceDiscoverMsg(msgBytes, msgBytes.length);
+                                    ServiceDiscoverMsg serviceDiscoverMsg = null;
+                                    try {
+                                        serviceDiscoverMsg = MessageUtils.decomposeServiceDiscoverMsg(msgBytes, msgBytes.length, idShould);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                        Log.w(TAG, String.format("消息解析出错 [%s]", e.getMessage()));
+                                        return;
+                                    }
                                     Log.i(TAG, "服务发现回应消息 " + serviceDiscoverMsg.toString());
                                     logonToGate();
                                 } else {
@@ -434,7 +467,14 @@ public class APSetupActivity extends ActionBarActivity {
                     int bytesCount = resultData.getInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT);
                     byte[] bytesData = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
 
-                    ClientLoginMsgResponse logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount);
+                    ClientLoginMsgResponse logonResponseMsg = null;
+                    try {
+                        logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Log.w(TAG, String.format("消息解析出错 [%s]", e.getMessage()));
+                        return;
+                    }
                     //获取发送的ID
                     short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                     if (logonResponseMsg.getMessageID() != msgRandID) {

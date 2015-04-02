@@ -1,5 +1,7 @@
 package com.everhope.elighte.models;
 
+import android.util.Log;
+
 import com.everhope.elighte.constants.FunctionCodes;
 import com.everhope.elighte.constants.MessageObjectTypes;
 import com.everhope.elighte.helpers.MessageUtils;
@@ -14,13 +16,15 @@ import java.util.Arrays;
  */
 public class ServiceDiscoverMsg extends Message{
 
+    private static final String TAG = "ServiceDiscoverMsg@Light";
+
     public ServiceDiscoverMsg() {}
 
     /**
      * 通过字节数组构造消息体
      * @param msgBytes
      */
-    public ServiceDiscoverMsg(byte[] msgBytes) {
+    public ServiceDiscoverMsg(byte[] msgBytes, short idShould) throws Exception {
         ByteBuffer byteBuffer = ByteBuffer.wrap(msgBytes);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -36,6 +40,14 @@ public class ServiceDiscoverMsg extends Message{
         //报文序号
         short messageID = byteBuffer.getShort();
         setMessageID(messageID);
+        if (messageSign != MessageUtils.messageSign || messageID != idShould) {
+            Log.w(TAG, String.format("收到消息特征码[%s] 发送消息特征码[%s] 收到消息ID[%s] 发送消息ID[%s]",
+                    messageSign + "",
+                    MessageUtils.messageSign + "",
+                    messageID + "",
+                    idShould + ""));
+            throw new Exception("Message id or sign not match");
+        }
         //报文属性域
         short props = byteBuffer.getShort();
         setPropertiesRegion(props);

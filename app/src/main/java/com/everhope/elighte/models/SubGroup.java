@@ -17,6 +17,7 @@ public class SubGroup extends Model {
     public String name;
 
     public List<LightGroup> lightGroups() {
+//        new Select().from(LightGroup.class).where("")
         return getMany(LightGroup.class, "SUBGROUP");
     }
 

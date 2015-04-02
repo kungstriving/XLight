@@ -1,15 +1,18 @@
 package com.everhope.elighte.activities;
 
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.support.v4.view.GravityCompat;
@@ -21,9 +24,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.adapters.LeftMenuAdapter;
@@ -40,11 +46,14 @@ import com.everhope.elighte.fragments.SwitchFragment;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
+import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.SubGroup;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
 import com.everhope.elighte.models.StationObject;
 import com.everhope.elighte.receivers.SyncStationAlarmReceiver;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +66,8 @@ public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity@Light";
 
+    private static final int MSG_ADD_NEWGROUP = 0;
+
     private ProgressBar progressBar;
     private ListView leftListView;
     private DrawerLayout drawerLayout;
@@ -65,6 +76,8 @@ public class MainActivity extends ActionBarActivity {
     private CharSequence mTitle;
     private CharSequence mDrawerTitle;
     private ActionBarDrawerToggle mDrawerToggle;
+    private Fragment currentFragment;
+    private Handler mainHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +95,28 @@ public class MainActivity extends ActionBarActivity {
         setLeftDrawer(savedInstanceState);
         //与网关同步数据
         syncDataWithGate();
+        //设置handler
+        setMainHandler();
+    }
+
+    private void setMainHandler() {
+        this.mainHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch (msg.what) {
+                    case MSG_ADD_NEWGROUP:
+                        //
+                        if (currentFragment != null) {
+                            LightFragment lightFragment = (LightFragment)currentFragment;
+                            String newGroupName = (String)msg.obj;
+                            lightFragment.addNewGroup(newGroupName);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        };
     }
 
     /**
@@ -97,8 +132,15 @@ public class MainActivity extends ActionBarActivity {
                 if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                     //读到了回应消息
                     byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                    short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                     //解析回应消息
-                    GetAllStationsMsgResponse getAllStationsMsgResponse = MessageUtils.decomposeGetAllStationsMsgResponse(msgBytes, msgBytes.length);
+                    GetAllStationsMsgResponse getAllStationsMsgResponse = null;
+                    try {
+                        getAllStationsMsgResponse = MessageUtils.decomposeGetAllStationsMsgResponse(msgBytes, msgBytes.length, idShould);
+                    } catch (Exception e) {
+                        Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                        return;
+                    }
                     Log.i(TAG, "获取所有站点列表回应消息 " + getAllStationsMsgResponse.toString());
                     //取出当前数据库表中的所有站点进行比对
                     //新增 或 删除
@@ -110,12 +152,21 @@ public class MainActivity extends ActionBarActivity {
 
                         boolean delete = true;
                         for(int i = 0; i < length; i++) {
-                            if (light.lightMac.equals(gateAllLights[i].getMac())) {
+                            if (light.lightMac != null && light.lightMac.equals(gateAllLights[i].getMac())) {
                                 delete = false;
                                 break;
                             }
                         }
                         if (delete) {
+                            List<LightGroup> lightGroups = light.lightGroups();
+                            for(LightGroup lightGroup : lightGroups) {
+                                lightGroup.delete();
+                            }
+
+                            List<LightScene> lightScenes = light.lightScenes();
+                            for(LightScene lightScene : lightScenes) {
+                                lightScene.delete();
+                            }
                             light.delete();
                         }
                     }
@@ -124,7 +175,7 @@ public class MainActivity extends ActionBarActivity {
                         for (StationObject stationObject : gateAllLights) {
                             Light newLight = new Light();
                             newLight.lightID = stationObject.getId() + "";
-                            newLight.name = stationObject.getId() + "[" + stationObject.getMac() + "]";
+                            newLight.name = "[" + stationObject.getMac() + "]";
                             newLight.lightMac = stationObject.getMac();
                             //新增的灯加入到未分组 组中
                             SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
@@ -134,34 +185,36 @@ public class MainActivity extends ActionBarActivity {
                             newLight.save();
                             lightGroup.save();
                         }
-                    }
-                    for (StationObject stationObject : gateAllLights) {
-                        boolean add = true;
+                    } else {
+                        for (StationObject stationObject : gateAllLights) {
+                            boolean add = true;
 
-                        for (int j = 0; j < myLights.size(); j++) {
+                            for (int j = 0; j < myLights.size(); j++) {
 
-                            Light light = myLights.get(j);
-                            if (light.lightMac.equals(stationObject.getMac())) {
-                                //已存在 不用新增
-                                add = false;
-                                break;
+                                Light light = myLights.get(j);
+                                if (light.lightMac.equals(stationObject.getMac())) {
+                                    //已存在 不用新增
+                                    add = false;
+                                    break;
+                                }
+                            }
+
+                            if (add) {
+                                //新增
+                                Light newLight = new Light();
+                                newLight.lightID = stationObject.getId() + "";
+                                newLight.name = "[" + stationObject.getMac() + "]";
+                                //新增的灯加入到未分组 组中
+                                SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
+                                LightGroup lightGroup = new LightGroup();
+                                lightGroup.light = newLight;
+                                lightGroup.subgroup = ungroup;
+                                newLight.save();
+                                lightGroup.save();
                             }
                         }
-
-                        if (add) {
-                            //新增
-                            Light newLight = new Light();
-                            newLight.lightID = stationObject.getId() + "";
-                            newLight.name = stationObject.getId() + "";
-                            //新增的灯加入到未分组 组中
-                            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
-                            LightGroup lightGroup = new LightGroup();
-                            lightGroup.light = newLight;
-                            lightGroup.subgroup = ungroup;
-                            newLight.save();
-                            lightGroup.save();
-                        }
                     }
+
                 } else {
                     //出错
                     Log.e(TAG, String.format("获取所有站点列表出错 Code=[%s]", resultCode + ""));
@@ -170,13 +223,17 @@ public class MainActivity extends ActionBarActivity {
         });
 
         //启动周期性同步数据
-        Intent intent = new Intent(getApplicationContext(), SyncStationAlarmReceiver.class);
+        Intent intent = new Intent(this, SyncStationAlarmReceiver.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         final PendingIntent pIntent = PendingIntent.getBroadcast(this, SyncStationAlarmReceiver.REQUEST_CODE,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        long firstMillis = System.currentTimeMillis(); // first run of alarm is immediate
+//        long firstMillis = System.currentTimeMillis(); // first run of alarm is immediate
         int intervalMillis = Constants.SYSTEM_SETTINGS.SYNC_INTERVAL;
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis, intervalMillis, pIntent);
+        alarm.cancel(pIntent);
+
+        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), intervalMillis, pIntent);
+
 
         Log.i(TAG, "启动周期同步服务");
         //各个站点状态
@@ -234,45 +291,44 @@ public class MainActivity extends ActionBarActivity {
     private void selectItem(int position) {
 
         FragmentManager fragmentManager = getFragmentManager();
-        Fragment fragment = null;
         // Create a new fragment and specify the planet to show based on position
         switch (position) {
             case 0:
                 //打开首页
 //                setupHomeTabs();
-                fragment = new HomeFragment();
+                this.currentFragment = new HomeFragment();
 //                Bundle args = new Bundle();
 //                args.putInt(PlanetFragment.ARG_PLANET_NUMBER, position);
 //                fragment.setArguments(args);
                 break;
             case 1:
                 //打开灯
-                fragment = LightFragment.newInstance("");
+                this.currentFragment = LightFragment.newInstance("");
                 break;
             case 2:
                 //开关配置
-                fragment = SwitchFragment.newInstance("开关","test");
+                this.currentFragment = SwitchFragment.newInstance("开关","test");
                 break;
             case 3:
                 //遥控配置
-                fragment = RemoterFragment.newInstance("遥控", "test");
+                this.currentFragment = RemoterFragment.newInstance("遥控", "test");
                 break;
             case 4:
                 //打开设置
-                fragment = SettingsFragment.newInstance("设置");
+                this.currentFragment = SettingsFragment.newInstance("设置");
                 break;
             default:
                 //打开首页
-                fragment = new HomeFragment();
+                this.currentFragment = new HomeFragment();
                 break;
         }
 
 
         // Insert the fragment by replacing any existing fragment
 
-        if (fragment != null) {
+        if (this.currentFragment != null) {
             fragmentManager.beginTransaction()
-                    .replace(R.id.content_frame, fragment)
+                    .replace(R.id.content_frame, this.currentFragment)
                     .commit();
 
             // Highlight the selected item, update the title, and close the drawer
@@ -354,7 +410,7 @@ public class MainActivity extends ActionBarActivity {
         //停止服务
         Log.i(TAG, "停止周期同步服务");
 
-        Intent intent = new Intent(getApplicationContext(), SyncStationAlarmReceiver.class);
+        Intent intent = new Intent(this, SyncStationAlarmReceiver.class);
         final PendingIntent pIntent = PendingIntent.getBroadcast(this, SyncStationAlarmReceiver.REQUEST_CODE,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
@@ -382,14 +438,14 @@ public class MainActivity extends ActionBarActivity {
             //关闭的时候
             switch (this.currentSelectFrag) {
                 case 0:
-                    //首页
+                    //场景
                     menu.findItem(R.id.action_frag_main_add).setVisible(true);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
                     break;
                 case 1:
-                    //场景
-                    menu.findItem(R.id.action_frag_main_add).setVisible(false);
-                    menu.findItem(R.id.action_frag_main_edit).setVisible(true);
+                    //灯列表
+                    menu.findItem(R.id.action_frag_main_add).setVisible(true);
+                    menu.findItem(R.id.action_frag_main_edit).setVisible(false);
                     break;
                 default:
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
@@ -416,9 +472,21 @@ public class MainActivity extends ActionBarActivity {
         // Handle action buttons
         switch(item.getItemId()) {
             case R.id.action_frag_main_add:
-                //添加场景
-                fragment = AddSceneFragment.newInstance("","");
-                setTitle("添加场景");
+                switch (this.currentSelectFrag) {
+                    case 0:
+                        //添加场景
+                        fragment = AddSceneFragment.newInstance("","");
+                        setTitle("添加场景");
+                        break;
+                    case 1:
+                        //灯列表
+//                        Toast.makeText(MainActivity.this, "添加分组",Toast.LENGTH_LONG).show();
+                        addLightGroup();
+                        break;
+                    default:
+                        break;
+                }
+
                 break;
             default:
                 return super.onOptionsItemSelected(item);
@@ -433,6 +501,47 @@ public class MainActivity extends ActionBarActivity {
         return true;
     }
 
+    private void addLightGroup() {
+        //弹出对话框进行输入
+        EditText editText = new EditText(MainActivity.this);
+
+        InputGroupNameListener inputGroupNameListener = new InputGroupNameListener(editText);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                .setTitle("创建组")
+                .setIcon(android.R.drawable.ic_menu_edit)
+                .setView(editText)
+                .setPositiveButton("确定", inputGroupNameListener)
+                .setNegativeButton("取消",null);
+        AlertDialog alertDialog = builder.create();
+        alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        alertDialog.show();
+
+        editText.setFocusable(true);
+        editText.requestFocus();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        selectItem(this.currentSelectFrag);
+    }
+
+    class InputGroupNameListener implements DialogInterface.OnClickListener {
+
+        private EditText groupNameET;
+        public InputGroupNameListener(EditText editText) {
+            this.groupNameET = editText;
+        }
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            String newGroupName = this.groupNameET.getText().toString();
+
+            Message message = new Message();
+            message.what = MSG_ADD_NEWGROUP;
+            message.obj = newGroupName;
+            mainHandler.sendMessage(message);
+        }
+    }
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
@@ -444,29 +553,4 @@ public class MainActivity extends ActionBarActivity {
         super.onConfigurationChanged(newConfig);
         mDrawerToggle.onConfigurationChanged(newConfig);
     }
-
-    /**
-     * Fragment that appears in the "content_frame", shows a planet
-     */
-//    public static class PlanetFragment extends Fragment {
-//        public static final String ARG_PLANET_NUMBER = "planet_number";
-//
-//        public PlanetFragment() {
-//            // Empty constructor required for fragment subclasses
-//        }
-//
-//        @Override
-//        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-//                                 Bundle savedInstanceState) {
-//            View rootView = inflater.inflate(R.layout.fragment_home, container, false);
-//            int i = getArguments().getInt(ARG_PLANET_NUMBER);
-//            String planet = getResources().getStringArray(R.array.left_nav_items)[i];
-//
-//            int imageId = getResources().getIdentifier(planet.toLowerCase(Locale.getDefault()),
-//                    "drawable", getActivity().getPackageName());
-//            ((ImageView) rootView.findViewById(R.id.image)).setImageResource(imageId);
-//            getActivity().setTitle(planet);
-//            return rootView;
-//        }
-//    }
 }

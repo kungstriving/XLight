@@ -15,7 +15,10 @@ import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.ExitStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllStationsMsg;
+import com.everhope.elighte.models.MultiStationBrightControlMsg;
+import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
+import com.everhope.elighte.models.StationColorControlMsg;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.ArrayUtils;
@@ -67,6 +70,13 @@ public class CommIntentService extends IntentService {
      */
     private static final String ACTION_EXIT_STATION_ID = "com.everhope.xlight.comm.action.exit.stat.id";
 
+    /**
+     * 设置站点颜色
+     */
+    private static final String ACTION_SET_STATION_COLOR = "com.everhope.xlight.comm.action.set.station.clr";
+
+    private static final String ACTION_SET_MULTI_STATION_BRIGHT = "com.everhope.xlight.comm.action.set.multi.station.bright";
+
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
      * 消息接收器
@@ -101,7 +111,46 @@ public class CommIntentService extends IntentService {
      */
     private static final String EXTRA_STATION_ID = "com.everhope.xlight.comm.extra.station.id";
 
+    /**
+     * 站点颜色hsb数组
+     */
+    private static final String EXTRA_HSB_COLOR = "com.everhope.xlight.comm.extra.hsb.color";
+
+    private static final String EXTRA_MULTI_STATIONS_IDS = "com.everhope.xlight.comm.extra.multi.station.ids";
+
+    private static final String EXTRA_MULTI_STATION_BRIGHT = "com.everhope.xlight.comm.extra.multi.station.bright";
+
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
+
+    /**
+     * 启动设置站点颜色活动
+     *
+     * @param context
+     * @param stationID
+     * @param hsb
+     * @param receiver
+     */
+    public static void startActionSetStationColor(Context context, short stationID, byte[] hsb, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_SET_STATION_COLOR);
+
+        intent.putExtra(EXTRA_STATION_ID, stationID);
+        intent.putExtra(EXTRA_HSB_COLOR, hsb);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
+
+    public static void startActionSetMultiStationsBright(Context context, short[] stationIDs, byte[] stationsBright, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_SET_MULTI_STATION_BRIGHT);
+
+        intent.putExtra(EXTRA_MULTI_STATIONS_IDS, stationIDs);
+        intent.putExtra(EXTRA_MULTI_STATION_BRIGHT, stationsBright);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
 
     public static void startActionExitStationId(Context context, ResultReceiver receiver, String stationID) {
         Intent intent = new Intent(context, CommIntentService.class);
@@ -148,10 +197,10 @@ public class CommIntentService extends IntentService {
      * 发送服务发现命令
      * @param context
      */
-    public static void startActionServiceDiscover(Context context) {
+    public static void startActionServiceDiscover(Context context, ResultReceiver receiver) {
         Intent intent = new Intent(context, CommIntentService.class);
         intent.setAction(ACTION_SERVICE_DISCOVER);
-
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
         context.startService(intent);
     }
 
@@ -240,9 +289,31 @@ public class CommIntentService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         ResultReceiver receiver = null;
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        if (!dataAgent.isConnected()) {
+            receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+            if (receiver != null) {
+                receiver.send(Constants.COMMON.EC_NETWORK_NO_CONNECTED, null);
+            }
+            return;
+        }
         if (intent != null) {
             final String action = intent.getAction();
             switch (action) {
+                case ACTION_SET_STATION_COLOR:
+                    //设置场景中站点颜色
+                    short stationIDSetClr = intent.getShortExtra(EXTRA_STATION_ID, (short)0);
+                    byte[] colorHSB = intent.getByteArrayExtra(EXTRA_HSB_COLOR);
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionSetStationColor(stationIDSetClr, colorHSB, receiver);
+                    break;
+                case ACTION_SET_MULTI_STATION_BRIGHT:
+                    //设置场景中的整体亮度
+                    short[] ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
+                    byte[] brightBytesArr = intent.getByteArrayExtra(EXTRA_MULTI_STATION_BRIGHT);
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionSetMultiStationsBright(ids,brightBytesArr, receiver);
+                    break;
                 case ACTION_LOGIN_GATE:
                     //登录网关
                     String clientID = intent.getStringExtra(EXTRA_CLIENTID);
@@ -261,7 +332,8 @@ public class CommIntentService extends IntentService {
                     break;
                 case ACTION_SERVICE_DISCOVER:
                     //服务发现
-                    handleActionServiceDis();
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionServiceDis(receiver);
                     break;
                 case ACTION_ENTER_STATION_ID:
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
@@ -298,6 +370,84 @@ public class CommIntentService extends IntentService {
 
     /////////////////////////////// 服务处理 ///////////////////////////////////
 
+    private void handleActionSetMultiStationsBright(short[] ids, byte[] brights, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        MultiStationBrightControlMsg multiStationBrightControlMsg = MessageUtils.composeMultiStationBrightControlMsg(ids, brights);
+
+        Log.d(TAG, String.format("批量调节站点亮度-消息[%s]", multiStationBrightControlMsg.toString()));
+
+        byte[] bytes = multiStationBrightControlMsg.toMessageByteArray();
+        short msgID = multiStationBrightControlMsg.getMessageID();
+
+        try {
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
+    /**
+     * 设置站点颜色
+     * @param stationID
+     * @param hsb
+     * @param receiver
+     */
+    private void handleActionSetStationColor(short stationID, byte[] hsb, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        StationColorControlMsg stationColorControlMsg = MessageUtils.composeStationColorControlMsg(stationID,hsb);
+
+        Log.d(TAG, String.format("调节站点颜色-消息[%s]", stationColorControlMsg.toString()));
+
+        byte[] bytes = stationColorControlMsg.toMessageByteArray();
+        short msgID = stationColorControlMsg.getMessageID();
+
+        try {
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
     /**
      * 退出站点识别
      * @param stationIDToExit
@@ -333,6 +483,7 @@ public class CommIntentService extends IntentService {
         } catch (IOException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
         }
 
         receiver.send(resultCode, resultData);
@@ -395,22 +546,29 @@ public class CommIntentService extends IntentService {
         byte[] bytes = getAllLightsMsg.toMessageByteArray();
         short msgID = getAllLightsMsg.getMessageID();
 
-        try {
-            os.write(bytes);
-            os.flush();
+        for(int i = 0; i < Constants.SYSTEM_SETTINGS.SEND_RETRY_TIMES; i++) {
+            try {
+                os.write(bytes);
+                os.flush();
 
-            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
-            byte[] readedBytes;
-            int readedNum = is.read(tempBytes);
-            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+                byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+                byte[] readedBytes;
+                int readedNum = is.read(tempBytes);
+                readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
 
-            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
-            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
-            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
-        } catch (IOException e) {
-            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
-            e.printStackTrace();
-            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+                resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+                resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+                resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+                //正常发送和接收 则退出
+                break;
+            } catch (IOException e) {
+                resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+                e.printStackTrace();
+                Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+                //出错则重试
+                //continue
+                //TODO 所有出错情况下处理
+            }
         }
 
         receiver.send(resultCode, resultData);
@@ -467,6 +625,9 @@ public class CommIntentService extends IntentService {
         byte[] bytes = loginMsg.toMessageByteArray();
         short msgID = loginMsg.getMessageID();
         try {
+            //清空管道
+            is.skip(is.available());
+
             os.write(bytes);
             os.flush();
             byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
@@ -480,6 +641,7 @@ public class CommIntentService extends IntentService {
         } catch (IOException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
         }
 
         receiver.send(resultCode, resultData);
@@ -546,17 +708,35 @@ public class CommIntentService extends IntentService {
     /**
      * 发送服务发现报文
      */
-    private void handleActionServiceDis() {
+    private void handleActionServiceDis(ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
         OutputStream os = XLightApplication.getInstance().getDataAgent().getOutputStream();
-        byte[] bytes = MessageUtils.composeServiceDiscoverMsg();
+        InputStream inputStream = XLightApplication.getInstance().getDataAgent().getInputStream();
+        ServiceDiscoverMsg serviceDiscoverMsg = MessageUtils.composeServiceDiscoverMsg();
+        byte[] sendBytes = serviceDiscoverMsg.toMessageByteArray();
+        short msgID = serviceDiscoverMsg.getMessageID();
 
         try {
-            os.write(bytes);
+            os.write(sendBytes);
             os.flush();
+
+            //开始监听接收数据
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = inputStream.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
         } catch (IOException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
         }
+        receiver.send(resultCode, resultData);
     }
 
     /**
@@ -573,7 +753,8 @@ public class CommIntentService extends IntentService {
 
             InetAddress inetAddress = InetAddress.getByName(AppUtils.getSubnetBroadcaseAddr(CommIntentService.this));
 
-            byte[] data = MessageUtils.composeServiceDiscoverMsg();
+            ServiceDiscoverMsg serviceDiscoverMsg = MessageUtils.composeServiceDiscoverMsg();
+            byte[] data = serviceDiscoverMsg.toMessageByteArray();
             DatagramPacket datagramPacket = new DatagramPacket(data, data.length, inetAddress,Constants.SYSTEM_SETTINGS.GATE_BROADCAST_PORT);
             datagramSocket.send(datagramPacket);
 
@@ -587,15 +768,16 @@ public class CommIntentService extends IntentService {
             datagramReceiveSocket.receive(recPacket);
 
             //解析消息
-            MessageUtils.decomposeServiceDiscoverMsg(readedBytes, readedBytes.length);
+            try {
+                MessageUtils.decomposeServiceDiscoverMsg(readedBytes, readedBytes.length, serviceDiscoverMsg.getMessageID());
+            } catch (Exception e) {
+                resultCode = Constants.COMMON.EC_MESSAGE_RESOLVE_FAILED;
+            }
 
             InetAddress gateAddr = recPacket.getAddress();
             String gateIP = gateAddr.getHostAddress();
 
-            resultCode = 0;
             resultData.putString(Constants.KEYS_PARAMS.GATE_STA_IP, gateIP);
-            receiver.send(resultCode, resultData);
-
         } catch (SocketException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
@@ -657,7 +839,7 @@ public class CommIntentService extends IntentService {
                 }).start();
 
                 OutputStream outputStream = dataAgent.getOutputStream();
-                outputStream.write(MessageUtils.composeServiceDiscoverMsg());
+                outputStream.write(MessageUtils.composeServiceDiscoverMsg().toMessageByteArray());
                 outputStream.flush();
 
                 while(true) {

@@ -11,6 +11,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 
 /**
@@ -45,6 +46,7 @@ public class SetGateNetworkMsg extends Message{
 
         //set data region
         ByteBuffer byteBuffer = ByteBuffer.allocate(160);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         //设置网络id
         byte[] ssidBytes = this.ssid.getBytes();
         byte[] ssidData = new byte[32];
@@ -77,7 +79,7 @@ public class SetGateNetworkMsg extends Message{
         short crc = 0;
         setCrc(crc);
 
-        short length = 18 + 64;      //18(消息固定长度)+64（数据域长度）
+        short length = 18 + 160;      //18(消息固定长度)+64（数据域长度）
         setMessageLength(length);
     }
 

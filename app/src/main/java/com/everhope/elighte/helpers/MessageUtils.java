@@ -11,9 +11,13 @@ import com.everhope.elighte.models.GetAllLightsStatusMsg;
 import com.everhope.elighte.models.GetAllLightsStatusMsgResponse;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
+import com.everhope.elighte.models.GetStationsStatusMsg;
+import com.everhope.elighte.models.GetStationsStatusMsgResponse;
+import com.everhope.elighte.models.MultiStationBrightControlMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.SetGateNetworkMsgResponse;
+import com.everhope.elighte.models.StationColorControlMsg;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -62,12 +66,12 @@ public class MessageUtils {
      * 生成服务发现报文
      * @return
      */
-    public static byte[] composeServiceDiscoverMsg() {
+    public static ServiceDiscoverMsg composeServiceDiscoverMsg() {
 
         ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg();
         serviceDiscoverMsg.buildUp();
         Log.i(TAG, String.format("服务发现发送消息 [%s]", serviceDiscoverMsg.toString()));
-        return serviceDiscoverMsg.toMessageByteArray();
+        return serviceDiscoverMsg;
 
         /*
         服务发现
@@ -80,14 +84,28 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
 //        return bytes;
     }
 
+    public static GetStationsStatusMsg composeGetStationsStatusMsg(short[] ids) {
+        GetStationsStatusMsg getStationsStatusMsg = new GetStationsStatusMsg();
+        getStationsStatusMsg.setOpIDs(ids);
+
+        getStationsStatusMsg.buildUp();
+
+        return getStationsStatusMsg;
+    }
+
+    public static GetStationsStatusMsgResponse decomposeGetStationsStatusMsgResponse(byte[] data, int length) {
+        GetStationsStatusMsgResponse getStationsStatusMsgResponse = new GetStationsStatusMsgResponse(data);
+        return getStationsStatusMsgResponse;
+    }
+
     /**
      * 解析服务发现回应报文
      * @param data
      * @param count
      * @return
      */
-    public static ServiceDiscoverMsg decomposeServiceDiscoverMsg(byte[] data, int count) {
-        ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg(data);
+    public static ServiceDiscoverMsg decomposeServiceDiscoverMsg(byte[] data, int count, short idShould) throws Exception {
+        ServiceDiscoverMsg serviceDiscoverMsg = new ServiceDiscoverMsg(data, idShould);
         return serviceDiscoverMsg;
     }
 
@@ -109,7 +127,7 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
      * @param count
      * @return
      */
-    public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count) {
+    public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count) throws Exception {
         ClientLoginMsgResponse clientLoginMsgResponse = new ClientLoginMsgResponse(data);
         return clientLoginMsgResponse;
     }
@@ -123,6 +141,7 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
     public static SetGateNetworkMsg composeSetGateMsg(String ssid,String securityType, String pwd) {
         SetGateNetworkMsg setGateNetworkMsg = new SetGateNetworkMsg();
         setGateNetworkMsg.setSsid(ssid);
+        setGateNetworkMsg.setSecurityType(securityType);
         setGateNetworkMsg.setPwd(pwd);
 
         setGateNetworkMsg.buildUp();
@@ -182,8 +201,8 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
      * @param length
      * @return
      */
-    public static GetAllStationsMsgResponse decomposeGetAllStationsMsgResponse(byte[] data, int length) {
-        GetAllStationsMsgResponse getAllStationsMsgResponse = new GetAllStationsMsgResponse(data);
+    public static GetAllStationsMsgResponse decomposeGetAllStationsMsgResponse(byte[] data, int length, short idShould) throws Exception {
+        GetAllStationsMsgResponse getAllStationsMsgResponse = new GetAllStationsMsgResponse(data, idShould);
         return getAllStationsMsgResponse;
     }
 
@@ -198,9 +217,58 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         return getAllLightsStatusMsg;
     }
 
+    public static CommonMsgResponse decomposeMultiStationBrightControlResponse(byte[] data,int length) {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+        return commonMsgResponse;
+    }
+
+    public static MultiStationBrightControlMsg composeMultiStationBrightControlMsg(short[] ids, byte[] brightArr) {
+        MultiStationBrightControlMsg multiStationBrightControlMsg = new MultiStationBrightControlMsg();
+        multiStationBrightControlMsg.setOpIDs(ids);
+        multiStationBrightControlMsg.setBrightArr(brightArr);
+
+        multiStationBrightControlMsg.buildUp();
+        return multiStationBrightControlMsg;
+    }
+
+    /**
+     * 组织生成调节站点颜色消息
+     * @param stationID
+     * @param hsb
+     * @return
+     */
+    public static StationColorControlMsg composeStationColorControlMsg(short stationID, byte[] hsb) {
+        StationColorControlMsg stationColorControlMsg = new StationColorControlMsg();
+        stationColorControlMsg.setObjectID(stationID);
+        stationColorControlMsg.setH(hsb[0]);
+        stationColorControlMsg.setS(hsb[1]);
+        stationColorControlMsg.setB(hsb[2]);
+
+        stationColorControlMsg.buildUp();
+
+        return stationColorControlMsg;
+    }
+
+    /**
+     * 解析所有灯状态消息
+     * @param data
+     * @param length
+     * @return
+     */
     public static GetAllLightsStatusMsgResponse decomposeGetAllLightsStatusResponse(byte[] data, int length) {
         GetAllLightsStatusMsgResponse getAllLightsStatusMsgResponse = new GetAllLightsStatusMsgResponse(data);
         return getAllLightsStatusMsgResponse;
+    }
+
+    /**
+     * 解析 调节站点颜色返回消息
+     * @param data
+     * @param length
+     * @return
+     */
+    public static CommonMsgResponse decomposeStationColorControlMsg(byte[]data, int length) {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+        return commonMsgResponse;
     }
 
     ////////////////////////////////////// 通用方法 ////////////////////////////////////
@@ -209,7 +277,7 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         return (short)RandomUtils.nextInt(3000);
     }
 
-    //////////////////////////////////// 测试工具方法 /////////////////////////////////
+    //////////////////////////////////// 测试工具方法 ///////////[//////////////////////
 
     /**
      * 返回null出错

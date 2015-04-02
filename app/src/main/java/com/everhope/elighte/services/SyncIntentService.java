@@ -3,16 +3,40 @@ package com.everhope.elighte.services;
 import android.app.IntentService;
 import android.content.Intent;
 import android.content.Context;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.os.ResultReceiver;
 import android.util.Log;
 
 import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.comm.DataAgent;
+import com.everhope.elighte.constants.Constants;
+import com.everhope.elighte.constants.FunctionCodes;
+import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.GetAllLightsStatusMsg;
+import com.everhope.elighte.models.GetStationsStatusMsg;
+import com.everhope.elighte.models.GetStationsStatusMsgResponse;
+import com.everhope.elighte.models.Light;
+import com.everhope.elighte.models.MultiStationBrightControlMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
+import com.everhope.elighte.models.StationBrightTurnCmd;
+import com.everhope.elighte.models.StationColorTurnCmd;
+import com.everhope.elighte.models.StationDeviceStatusCmd;
+import com.everhope.elighte.models.StationDeviceSwitchCmd;
+import com.everhope.elighte.models.StationSubCmd;
 
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 同步站点状态的服务
@@ -21,7 +45,7 @@ public class SyncIntentService extends IntentService {
 
     private static final String TAG = "SyncIntentService@Light";
 
-    private static final String ACTION_SYNC_STATION_STATUS =
+    public static final String ACTION_SYNC_STATION_STATUS =
             "com.everhope.elighte.services.action.sync.station.status";
 
 //    private static final String EXTRA_PARAM1 = "com.everhope.elighte.services.extra.PARAM1";
@@ -43,6 +67,7 @@ public class SyncIntentService extends IntentService {
         if (intent != null) {
             final String action = intent.getAction();
             if (ACTION_SYNC_STATION_STATUS.equals(action)) {
+//                ResultReceiver receiver = new ResultReceiver(new )
                 handleActionSyncStationStatus();
             }
         }
@@ -54,13 +79,124 @@ public class SyncIntentService extends IntentService {
     private void handleActionSyncStationStatus() {
         Log.i(TAG, "启动同步站点状态操作");
 
+        //最多一次遥信30个站点
+        int maxSignalStationCount = 30;
+
+
+        //获取要更新的站点id
+        List<Light> lightList = Light.getAll();
+        List<Short> shortIDs = new ArrayList<>();
+        int count = 1;
+        for (Light light : lightList) {
+            shortIDs.add(Short.parseShort(light.lightID));
+            if(shortIDs.size() == maxSignalStationCount || count == lightList.size()) {
+                //发送消息
+                Short[] tmpIDs = new Short[shortIDs.size()];
+                tmpIDs = shortIDs.toArray(tmpIDs);
+                sendToGate(ArrayUtils.toPrimitive(tmpIDs));
+                shortIDs.clear();
+            }
+            count++;
+        }
+
+    }
+
+    private void sendToGate(short [] ids) {
+
         DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        Socket socket = dataAgent.getSocket();
         OutputStream os = dataAgent.getOutputStream();
         InputStream is = dataAgent.getInputStream();
 
-        GetAllLightsStatusMsg getAllLightsStatusMsg = MessageUtils.composeGetAllLightsStatusMsg();
+        GetStationsStatusMsg getStationsStatusMsg = MessageUtils.composeGetStationsStatusMsg(ids);
 
-//        Log.i(TAG, String.format("设置网关网络密码消息[%s]", setGateNetworkMsg.toString()));
+        Log.d(TAG, String.format("批量获取站点状态-消息[%s]", getStationsStatusMsg.toString()));
+
+        byte[] bytes = getStationsStatusMsg.toMessageByteArray();
+        short msgID = getStationsStatusMsg.getMessageID();
+
+        try {
+            //清空管道 重要！！ 否则读取到之前的消息
+            socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_LONG_SOTIMEOUT);
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+            socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
+            GetStationsStatusMsgResponse getStationsStatusMsgResponse = MessageUtils.decomposeGetStationsStatusMsgResponse(readedBytes, readedBytes.length);
+            Log.i(TAG, String.format("批量获取站点状态回应消息 [%s]",getStationsStatusMsgResponse.toString()));
+            handleMessageReturn(getStationsStatusMsgResponse, msgID);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+        }
     }
 
+    /**
+     * 存入数据库
+     * @param msgResponse
+     * @param msgID
+     */
+    private void handleMessageReturn(GetStationsStatusMsgResponse msgResponse, short msgID) {
+        //检测消息ID
+        if (msgResponse.getMessageID() != msgID) {
+            Log.w(TAG, String.format("消息ID不匹配 发送[%s] 收到[%s]", msgID, msgResponse.getMessageID()));
+            return;
+        }
+
+        Map<Short, List<StationSubCmd>> map = msgResponse.getMap();
+        for(Map.Entry<Short, List<StationSubCmd>> entry : map.entrySet()) {
+            short stationID = entry.getKey();
+            List<StationSubCmd> commands = entry.getValue();
+            Light light = Light.getByLightID(stationID+"");
+            for (StationSubCmd stationSubCmd : commands) {
+                FunctionCodes.SubFunctionCodes functionCodes = stationSubCmd.getSubFunctionCode();
+                switch (functionCodes) {
+                    case DEVICE_STATUS:
+                        StationDeviceStatusCmd stationDeviceStatusCmd = (StationDeviceStatusCmd)stationSubCmd;
+                        byte flagsByte = stationDeviceStatusCmd.getFlags();
+                        byte temp = 0;
+                        temp = (byte)(flagsByte & 0x01);
+                        light.lostConnection = (temp != 0);
+                        temp = (byte)(flagsByte & 0x02);
+                        light.triggerAlarm = (temp != 0);
+                        break;
+                    case DEVICE_SWITCH:
+                        StationDeviceSwitchCmd stationDeviceSwitchCmd = (StationDeviceSwitchCmd)stationSubCmd;
+                        light.switchOn = stationDeviceSwitchCmd.isSwitchStatus();
+                        break;
+                    case COLOR_TURN:
+                        StationColorTurnCmd stationColorTurnCmd = (StationColorTurnCmd)stationSubCmd;
+                        byte h = stationColorTurnCmd.getH();
+                        byte s = stationColorTurnCmd.getS();
+                        byte b = stationColorTurnCmd.getB();
+                        byte[] hsb = new byte[3];
+                        hsb[0] = h;
+                        hsb[1] = s;
+                        hsb[2] = b;
+                        int rgbColor = AppUtils.hsbColorValueToRGB(hsb);
+                        light.rColor = Color.red(rgbColor);
+                        light.gColor = Color.green(rgbColor);
+                        light.bColor = Color.blue(rgbColor);
+
+                        break;
+                    case BRIGHTNESS_TURN:
+                        StationBrightTurnCmd stationBrightTurnCmd = (StationBrightTurnCmd)stationSubCmd;
+                        light.brightness = stationBrightTurnCmd.getBrightValue();
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            //存储
+            light.save();
+        }
+    }
 }

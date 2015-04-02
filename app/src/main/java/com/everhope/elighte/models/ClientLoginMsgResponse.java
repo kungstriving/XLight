@@ -1,5 +1,8 @@
 package com.everhope.elighte.models;
 
+import com.everhope.elighte.helpers.AppUtils;
+import com.everhope.elighte.helpers.MessageUtils;
+
 import org.apache.commons.codec.binary.Hex;
 
 import java.nio.ByteBuffer;
@@ -32,7 +35,7 @@ public class ClientLoginMsgResponse extends Message{
     private String gatePhysicalAddr;
     private String gateDesc;
 
-    public ClientLoginMsgResponse(byte[] bytes) {
+    public ClientLoginMsgResponse(byte[] bytes) throws Exception{
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -42,9 +45,13 @@ public class ClientLoginMsgResponse extends Message{
         //消息长度
         short messageLength = byteBuffer.getShort();
         setMessageLength(messageLength);
+
         //消息特征码
         short messageSign = byteBuffer.getShort();
         setMessageSignature(messageSign);
+        if (messageSign != MessageUtils.messageSign) {
+            throw new Exception("Message sign not match");
+        }
         //报文序号
         short messageID = byteBuffer.getShort();
         setMessageID(messageID);
@@ -82,12 +89,15 @@ public class ClientLoginMsgResponse extends Message{
         setSign(sign);
         short length = byteBuffer.getShort();
         setGateInfoLength(length);
+        //版本号
         short ver = byteBuffer.getShort();
         setGateProtoVer(ver);
+
         byte[] gateMac = new byte[8];
         byteBuffer.get(gateMac);
 //        setGatePhysicalAddr(new String(gateMac));
-        setGatePhysicalAddr(new String(Hex.encodeHex(gateMac)));
+
+        setGatePhysicalAddr(AppUtils.getMACString(gateMac));
         byte[] gateDesc = new byte[length - 10];        //-12 or -14
         byteBuffer.get(gateDesc);
         setGateDesc(new String(gateDesc));
@@ -137,8 +147,20 @@ public class ClientLoginMsgResponse extends Message{
         this.gateInfoLength = gateInfoLength;
     }
 
-    public short getGateProtoVer() {
-        return gateProtoVer;
+    public String getGateProtoVer() {
+        StringBuilder verBuilder = new StringBuilder();
+        short ver = this.gateProtoVer;
+
+        short temp = (short)(ver & 0x0100);
+        temp = (short)(temp >> 8);
+        verBuilder.append(temp).append(".");
+        temp = (short)(ver & 0x0010);
+        temp = (short)(temp >> 4);
+        verBuilder.append(temp).append(".");
+        temp = (short)(ver & 0x0001);
+        verBuilder.append(temp);
+
+        return verBuilder.toString();
     }
 
     public void setGateProtoVer(short gateProtoVer) {

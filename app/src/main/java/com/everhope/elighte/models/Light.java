@@ -22,16 +22,46 @@ public class Light extends Model{
     public String name;
 
     /**
-     * 灯id
+     * 灯id=station id
      */
     @Column(name="LIGHT_ID")
     public String lightID;
 
+    /**
+     * 灯地址 mac
+     */
     @Column(name="LIGHT_MAC")
     public String lightMac;
 
+    /**
+     * 告警
+     */
+    @Column(name="TRIGGER_ALARM")
+    public boolean triggerAlarm = false;
+
+    /**
+     * 失联
+     */
+    @Column(name="LOST_CONNECTION")
+    public boolean lostConnection = false;
+
+    /**
+     * 开关状态
+     */
+    @Column(name="SWITCH_ON")
+    public boolean switchOn = true;
+
+    @Column(name="R_COLOR")
+    public int rColor;
+    @Column(name="G_COLOR")
+    public int gColor;
+    @Column(name="B_COLOR")
+    public int bColor;
+    @Column(name = "BRIGHTNESS")
+    public int brightness;
+
     public List<LightGroup> lightGroups() {
-        return getMany(LightGroup.class, "GROUP");
+        return getMany(LightGroup.class, "SUBGROUP");
     }
 
     public List<LightScene> lightScenes () {
@@ -46,6 +76,12 @@ public class Light extends Model{
         return new Select()
                 .from(Light.class)
                 .execute();
+    }
+
+    public static Light getByLightID(String lightID) {
+        return new Select().from(Light.class)
+                .where("LIGHT_ID = ?", lightID)
+                .executeSingle();
     }
 
     public Light() {

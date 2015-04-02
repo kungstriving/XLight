@@ -1,6 +1,10 @@
 package com.everhope.elighte.models;
 
+import android.util.Log;
+
 import com.everhope.elighte.constants.StationTypes;
+import com.everhope.elighte.helpers.AppUtils;
+import com.everhope.elighte.helpers.MessageUtils;
 
 import org.apache.commons.codec.binary.Hex;
 
@@ -14,11 +18,12 @@ import java.util.List;
  */
 public class GetAllStationsMsgResponse extends Message{
 
+    private static final String TAG = "GetAllStationMsgResponse@Light";
     private short stationsCount;
 
     private StationObject[] stationObjects;
 
-    public GetAllStationsMsgResponse(byte[] bytes) {
+    public GetAllStationsMsgResponse(byte[] bytes, short idShould) throws Exception {
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -34,6 +39,16 @@ public class GetAllStationsMsgResponse extends Message{
         //报文序号
         short messageID = byteBuffer.getShort();
         setMessageID(messageID);
+
+        if (messageSign != MessageUtils.messageSign || messageID != idShould) {
+            Log.w(TAG, String.format("收到消息特征码[%s] 发送消息特征码[%s] 收到消息ID[%s] 发送消息ID[%s]",
+                    messageSign + "",
+                    MessageUtils.messageSign + "",
+                    messageID + "",
+                    idShould + ""));
+            throw new Exception("Message id or sign not match");
+        }
+
         //报文属性域
         short props = byteBuffer.getShort();
         setPropertiesRegion(props);
@@ -75,12 +90,11 @@ public class GetAllStationsMsgResponse extends Message{
             short stationType = byteBuffer.getShort();
             byte[] macBytes = new byte[8];
             byteBuffer.get(macBytes);
-            String stationMAC = new String(Hex.encodeHex(macBytes));
 
             StationObject stationObject = new StationObject();
             stationObject.setId(stationID);
             stationObject.setStationTypes(StationTypes.fromStationTypeShort(stationType));
-            stationObject.setMac(stationMAC);
+            stationObject.setMac(AppUtils.getMACString(macBytes));
             stationObjects[i] = stationObject;
         }
     }

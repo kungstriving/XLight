@@ -27,7 +27,7 @@ public class GetAllLightsStatusMsg extends Message{
         //func code
         setFunctionCode(FunctionCodes.RemoteSignal.REMOTE_SIGNAL_OP.getFuncCode());
         //object id
-        short allLightsID = Short.decode("0xffff");
+        short allLightsID = (short)-1;
         setObjectID(allLightsID);
 
         ////////////////////////// set data region /////////////////////////////

@@ -7,14 +7,17 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.ResultReceiver;
 import android.support.v7.app.ActionBarActivity;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.DragEvent;
 import android.view.Menu;
@@ -33,6 +36,8 @@ import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
+import com.everhope.elighte.helpers.MessageUtils;
+import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
@@ -98,20 +103,59 @@ public class SceneEditActivity extends ActionBarActivity {
         } else {
             Toast.makeText(SceneEditActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
         }
+        final Handler sendColorHandler = new Handler();
+        final Runnable timerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                sendColor = true;
+//                sendColorHandler.postDelayed(this, 400);
+            }
+        };
         //设置顶部底色变化
         this.topIVHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
 
-                int colorInt = msg.what;
+                //颜色值
+                final int colorInt = msg.what;
+                short lightID = (short)msg.arg1;
+                final byte[] hsb = AppUtils.rgbColorValueToHSB(colorInt);
                 DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
 
-                topIV.setBackgroundColor(colorInt);
                 //发送消息
                 if (sendColor == true) {
                     //发送颜色
+                    sendColor = false;
+                    dataAgent.setStationColor(SceneEditActivity.this, lightID, hsb, new ResultReceiver(new Handler()) {
+                        @Override
+                        protected void onReceiveResult(int resultCode, Bundle resultData) {
+                            if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                                //读到了回应消息
+                                byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                                //解析回应消息
+                                CommonMsgResponse msgResponse = MessageUtils.decomposeStationColorControlMsg(msgBytes, msgBytes.length);
+                                Log.i(TAG, String.format("调节颜色返回消息 [%s]", msgResponse.toString()));
+                                //检测消息ID
+                                short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                                if (msgResponse.getMessageID() != msgRandID) {
+                                    Log.w(TAG, "消息ID不匹配");
+                                    return;
+                                }
+                                if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                                    Log.w(TAG, String.format("消息返回错误-[%s]", AppUtils.getErrorInfo(msgResponse.getReturnCode() + "")));
+                                    return;
+                                }
+                                Log.i(TAG, "设置颜色 " + Arrays.toString(hsb));
+                                //设置颜色正常
+                                topIV.setBackgroundColor(colorInt);
+                            } else {
+                                Toast.makeText(SceneEditActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                                Log.w(TAG, "错误码 " + resultCode);
+                            }
+                        }
+                    });
                     //颜色发送成功后，开始计时
-                    //颜色发送接收到返回消息，改变topIV颜色
+                    sendColorHandler.postDelayed(timerRunnable, 400);
                 }
             }
         };
@@ -232,6 +276,8 @@ public class SceneEditActivity extends ActionBarActivity {
 
             View view = (View)event.getLocalState();        //light-icon view
             int lightIndex = Integer.parseInt(view.getTag().toString());
+            LightScene lightScene = lightScenes.get(lightIndex);
+            String lightID = lightScene.light.lightID;
             switch (action) {
                 case DragEvent.ACTION_DRAG_STARTED:
                     return true;
@@ -249,7 +295,12 @@ public class SceneEditActivity extends ActionBarActivity {
                     }
                     int clrPix = colorPickerBitmap.getPixel(x, y);
                     //发送变色信号
-                    topIVHandler.sendEmptyMessage(clrPix);
+//                    topIVHandler.sendEmptyMessage(clrPix);
+                    Message colorMsg = new Message();
+                    colorMsg.what = clrPix;
+                    colorMsg.arg1 = Integer.parseInt(lightID);
+                    topIVHandler.sendMessage(colorMsg);
+
                     return true;
                 case DragEvent.ACTION_DRAG_EXITED:
                     FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams)view.getLayoutParams();
@@ -284,8 +335,22 @@ public class SceneEditActivity extends ActionBarActivity {
                     view.setLayoutParams(vlp);
                     view.setVisibility(View.VISIBLE);
                     //记录位置
-                    lightScenes.get(lightIndex).x = dx;
-                    lightScenes.get(lightIndex).y = dy;
+                    lightScene.x = dx;
+                    lightScene.y = dy;
+                    //记录颜色值
+                    x = (int)(event.getX());
+                    y = (int)(event.getY());
+                    //bitmap.getPixel() 只能取高宽范围各减少一个像素的范围
+                    if (x > colorPickerWidth - 1) {
+                        x = colorPickerWidth - 1;
+                    }
+                    if (y > colorPickerHeight - 1) {
+                        y = colorPickerHeight - 1;
+                    }
+                    clrPix = colorPickerBitmap.getPixel(x, y);
+                    lightScene.rColor = Color.red(clrPix);
+                    lightScene.gColor = Color.green(clrPix);
+                    lightScene.bColor = Color.blue(clrPix);
                     return true;
                 case DragEvent.ACTION_DRAG_ENDED:
                     return true;
@@ -405,11 +470,9 @@ public class SceneEditActivity extends ActionBarActivity {
         switch (id) {
             case R.id.action_sceneedit_add:
                 Intent intent = new Intent(SceneEditActivity.this, ChooseLightActivity.class);
+                //默认从所有灯分组中选取灯
                 intent.putExtra("subgroup_id",1);
                 startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
-                return true;
-            case R.id.home:
-                finish();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

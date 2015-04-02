@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Handler;
+import android.os.Message;
 import android.os.ResultReceiver;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -26,14 +27,17 @@ import com.everhope.elighte.R;
 import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.constants.Constants;
+import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
+import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.SubGroup;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -42,6 +46,16 @@ import java.util.List;
 public class LightListActivity extends ActionBarActivity {
 
     private static final String TAG = "LightListActivity@Light";
+    /**
+     * 选择灯的标志 用来打开子活动
+     */
+    private static final int REQUEST_CODE_CHOOSE_LIGHTS = 1;
+
+    private static final int ADD_LIGHT_TO_LIST = 1;
+
+    private List<Light> lights;
+    private SubGroup subGroup;
+    private Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,9 +65,9 @@ public class LightListActivity extends ActionBarActivity {
 
         //1 默认是所有灯分组
         long subGroupID = intent.getLongExtra("subgroup_id", 1);
-        SubGroup subGroup = SubGroup.load(SubGroup.class, subGroupID);
+        subGroup = SubGroup.load(SubGroup.class, subGroupID);
         setTitle(subGroup.name);
-        List<Light> lights = new ArrayList<>();
+        lights = new ArrayList<>();
         List<LightGroup> lightGroupList = subGroup.lightGroups();
         for(LightGroup lightGroup : lightGroupList) {
             lights.add(lightGroup.light);
@@ -61,6 +75,7 @@ public class LightListActivity extends ActionBarActivity {
         ListView listView = (ListView)findViewById(R.id.subgroup_lights_lv);
         final SubGroupLightsListViewAdapter subGroupLightsListViewAdapter =
                 new SubGroupLightsListViewAdapter(LightListActivity.this, lights);
+        subGroupLightsListViewAdapter.setNotifyOnChange(true);
         listView.setAdapter(subGroupLightsListViewAdapter);
 
         //设置列表点击事件
@@ -84,10 +99,12 @@ public class LightListActivity extends ActionBarActivity {
                             short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                             if (enterStationIdReturnMsg.getMessageID() != msgRandID) {
                                 Log.w(TAG, "消息ID不匹配");
+                                Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
                                 return;
                             }
                             if (enterStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
                                 Log.w(TAG, String.format("消息返回错误[%s]", enterStationIdReturnMsg.getReturnCode() + ""));
+                                Toast.makeText(LightListActivity.this, AppUtils.getErrorInfo(enterStationIdReturnMsg.getReturnCode() + ""), Toast.LENGTH_LONG).show();
                                 return;
                             }
 
@@ -118,6 +135,26 @@ public class LightListActivity extends ActionBarActivity {
 //                Toast.makeText(LightListActivity.this, "light id" + light.lightID, Toast.LENGTH_LONG).show();
             }
         });
+
+        //添加返回按钮
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
+
+        handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch (msg.what) {
+                    case ADD_LIGHT_TO_LIST:
+                        Light tmpLight = (Light)msg.obj;
+                        subGroupLightsListViewAdapter.add(tmpLight);
+                        subGroupLightsListViewAdapter.notifyDataSetChanged();
+                        break;
+                    default:
+                        break;
+                }
+            }
+        };
+
     }
 
     class RenameLightCancelListener implements DialogInterface.OnClickListener {
@@ -237,6 +274,40 @@ public class LightListActivity extends ActionBarActivity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_CHOOSE_LIGHTS && resultCode == Constants.COMMON.RESULT_CODE_OK) {
+            long []ids = data.getLongArrayExtra("lights_selected_ids");
+
+            List<Long> listIDs = new ArrayList<>();
+            for(int i = 0; i < ids.length; i++) {
+                listIDs.add(ids[i]);
+            }
+
+            for(Light light : lights) {
+                Long id = light.getId();
+                if (listIDs.contains(id)) {
+                    listIDs.remove(id);
+                }
+            }
+
+            //将选中的灯加入到该分组中
+            for(Long newID : listIDs) {
+                Light newLight = Light.load(Light.class, newID);
+                LightGroup newLightGroup = new LightGroup();
+                newLightGroup.light = newLight;
+                newLightGroup.subgroup = this.subGroup;
+                newLightGroup.save();
+                //
+                Message message = new Message();
+                message.what = ADD_LIGHT_TO_LIST;
+                message.obj = newLight;
+                handler.sendMessage(message);
+            }
+        }
+    }
+
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_light_list, menu);
@@ -245,16 +316,22 @@ public class LightListActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch (id) {
+            case R.id.action_lightlist_add:
+                Intent intent = new Intent(LightListActivity.this, ChooseLightActivity.class);
+                //默认从所有灯分组选取
+                intent.putExtra("subgroup_id",1);
+                startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
+                return true;
+            case android.R.id.home:
+                //按压actionbar中的回退按钮
+                onBackPressed();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
-
-        return super.onOptionsItemSelected(item);
     }
+
 }

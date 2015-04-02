@@ -3,6 +3,7 @@ package com.everhope.elighte.models;
 import com.everhope.elighte.constants.FunctionCodes;
 
 /**
+ * 站点开关状态子命令
  * Created by kongxiaoyang on 2015/3/21.
  */
 public class StationDeviceSwitchCmd extends StationSubCmd {

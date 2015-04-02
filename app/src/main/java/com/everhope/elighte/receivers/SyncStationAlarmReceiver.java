@@ -17,6 +17,8 @@ public class SyncStationAlarmReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
         Intent i = new Intent(context, SyncIntentService.class);
+        i.setAction(SyncIntentService.ACTION_SYNC_STATION_STATUS);
+//        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startService(i);
 
     }

@@ -48,8 +48,8 @@ public class DataAgent {
      * @param receiver
      */
     public void serviceDiscover(Context context, ResultReceiver receiver) {
-        TCPReceiveIntentService.startActionListenBack(context, receiver);
-        CommIntentService.startActionServiceDiscover(context);
+//        TCPReceiveIntentService.startActionListenBack(context, receiver);
+        CommIntentService.startActionServiceDiscover(context, receiver);
     }
     /**
      * 启动网关侦测操作，如果获取到网关地址，则返回bundle中包括地址信息；如果没有，则返回错误码
@@ -58,7 +58,8 @@ public class DataAgent {
      */
     public void detectGateInLan(Context context, ResultReceiver receiver) {
         //启动网关侦测action
-        CommIntentService.startActionDetectGate(context, receiver);
+//        CommIntentService.startActionDetectGate(context, receiver);
+        UDPIntentService.startActionDetectGate(context, receiver);
     }
 
     /**
@@ -135,9 +136,21 @@ public class DataAgent {
      * @param hsb
      * @param receiver
      */
-    public void setStationColor(Context context, String stationID, int[] hsb, ResultReceiver receiver) {
-
+    public void setStationColor(Context context, short stationID, byte[] hsb, ResultReceiver receiver) {
+        CommIntentService.startActionSetStationColor(context, stationID, hsb, receiver);
     }
+
+    /**
+     * 设置多个站点亮度
+     * @param context
+     * @param ids
+     * @param brights
+     * @param receiver
+     */
+    public void setMultiStationBrightness(Context context, short[] ids, byte[] brights, ResultReceiver receiver) {
+        CommIntentService.startActionSetMultiStationsBright(context, ids, brights, receiver);
+    }
+
     /**
      * 创建到网关的TCP连接
      * @param serverHost 服务器地址
@@ -145,20 +158,29 @@ public class DataAgent {
      * @throws java.io.IOException 连接报错
      */
     public void buildConnection(String serverHost, int serverPort) throws IOException {
-        try {
-            socket = new Socket();
-            SocketAddress socketAddress = new InetSocketAddress(serverHost, serverPort);
-            socket.connect(socketAddress, Constants.SYSTEM_SETTINGS.NETWORK_CONNECT_TIMEOUT);
-            socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
-            inputStream = socket.getInputStream();
-            outputStream = socket.getOutputStream();
+        for (int i = 0; i < Constants.SYSTEM_SETTINGS.CONNECT_RETRY_TIMES; i++) {
+            try {
+                socket = new Socket();
+                SocketAddress socketAddress = new InetSocketAddress(serverHost, serverPort);
+                socket.connect(socketAddress, Constants.SYSTEM_SETTINGS.NETWORK_CONNECT_TIMEOUT);
+                socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
+                inputStream = socket.getInputStream();
+                outputStream = socket.getOutputStream();
 
-            this.serverAddr = serverHost;
-            this.serverPort = serverPort;
-        } catch (IOException e) {
-            //连接报错
-            throw e;
+                this.serverAddr = serverHost;
+                this.serverPort = serverPort;
+                break;
+            } catch (IOException e) {
+                //连接报错 记录log
+                Log.w(TAG, e.getMessage());
+                try {
+                    Thread.sleep(Constants.SYSTEM_SETTINGS.CONNECT_RETRY_INTERVAL_MS);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+            }
         }
+
     }
 
     public void reconnect() throws IOException {
@@ -187,6 +209,10 @@ public class DataAgent {
      */
     private DataAgent() {
 
+    }
+
+    public Socket getSocket() {
+        return this.socket;
     }
 
     public boolean isConnected() {

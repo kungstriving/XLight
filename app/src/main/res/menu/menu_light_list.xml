@@ -2,6 +2,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.everhope.elighte.activities.LightListActivity">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
-        android:orderInCategory="100" app:showAsAction="never" />
+    <item android:id="@+id/action_lightlist_add"
+        android:icon="@drawable/ic_action_new"
+        android:title="添加灯"
+        android:orderInCategory="100" app:showAsAction="ifRoom" />
 </menu>
