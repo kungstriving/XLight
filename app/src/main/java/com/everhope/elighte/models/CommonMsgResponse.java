@@ -1,5 +1,9 @@
 package com.everhope.elighte.models;
 
+import android.util.Log;
+
+import com.everhope.elighte.helpers.MessageUtils;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -8,12 +12,15 @@ import java.nio.ByteOrder;
  * Created by kongxiaoyang on 2015/3/2.
  */
 public class CommonMsgResponse extends Message {
+
+    private static final String TAG = "CommonMsgResponse@Light";
+
     public static short RETURN_CODE_OK = 0x0000;
     public static short RETURN_CODE_FAIL = 0x1000;
 
     private short returnCode;
 
-    public CommonMsgResponse(byte[] bytes) {
+    public CommonMsgResponse(byte[] bytes, short idShould) throws Exception {
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -29,6 +36,16 @@ public class CommonMsgResponse extends Message {
         //报文序号
         short messageID = byteBuffer.getShort();
         setMessageID(messageID);
+
+        if (messageSign != MessageUtils.messageSign || messageID != idShould) {
+            Log.w(TAG, String.format("收到消息特征码[%s] 发送消息特征码[%s] 收到消息ID[%s] 发送消息ID[%s]",
+                    messageSign + "",
+                    MessageUtils.messageSign + "",
+                    messageID + "",
+                    idShould + ""));
+            throw new Exception("Message id or sign not match");
+        }
+
         //报文属性域
         short props = byteBuffer.getShort();
         setPropertiesRegion(props);

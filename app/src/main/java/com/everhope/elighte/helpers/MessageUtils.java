@@ -2,9 +2,11 @@ package com.everhope.elighte.helpers;
 
 import android.util.Log;
 
+import com.everhope.elighte.activities.DeleteDevicesActivity;
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.ClientLoginMsgResponse;
 import com.everhope.elighte.models.CommonMsgResponse;
+import com.everhope.elighte.models.DeleteStationMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.ExitStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllLightsStatusMsg;
@@ -14,6 +16,7 @@ import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.GetStationsStatusMsg;
 import com.everhope.elighte.models.GetStationsStatusMsgResponse;
 import com.everhope.elighte.models.MultiStationBrightControlMsg;
+import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.SetGateNetworkMsgResponse;
@@ -51,14 +54,22 @@ public class MessageUtils {
         return exitStationIdentifyMsg;
     }
 
+    public static DeleteStationMsg composeDeleteStationMsg(short stationID) {
+        DeleteStationMsg deleteStationMsg = new DeleteStationMsg();
+        deleteStationMsg.setObjectID(stationID);
+        deleteStationMsg.buildUp();
+
+        return deleteStationMsg;
+    }
+
     /**
      * 解析 退出站点识别的返回消息
      * @param data
      * @param length
      * @return
      */
-    public static CommonMsgResponse decomposeExitStationIdReturnMsg(byte[] data, int length) {
-        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+    public static CommonMsgResponse decomposeExitStationIdReturnMsg(byte[] data, int length, short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
         return commonMsgResponse;
     }
 
@@ -93,8 +104,8 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         return getStationsStatusMsg;
     }
 
-    public static GetStationsStatusMsgResponse decomposeGetStationsStatusMsgResponse(byte[] data, int length) {
-        GetStationsStatusMsgResponse getStationsStatusMsgResponse = new GetStationsStatusMsgResponse(data);
+    public static GetStationsStatusMsgResponse decomposeGetStationsStatusMsgResponse(byte[] data, int length, short idShould) throws Exception {
+        GetStationsStatusMsgResponse getStationsStatusMsgResponse = new GetStationsStatusMsgResponse(data, idShould);
         return getStationsStatusMsgResponse;
     }
 
@@ -130,6 +141,16 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
     public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count) throws Exception {
         ClientLoginMsgResponse clientLoginMsgResponse = new ClientLoginMsgResponse(data);
         return clientLoginMsgResponse;
+    }
+
+    public static CommonMsgResponse decomposeSearchStationsResponse(byte[] data, int lenght, short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
+        return commonMsgResponse;
+    }
+
+    public static CommonMsgResponse decomposeDeleteStationResponse(byte[] data, int length, short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
+        return commonMsgResponse;
     }
 
     /**
@@ -179,8 +200,8 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
      * @param length
      * @return
      */
-    public static CommonMsgResponse decomposeEnterStationIdReturnMsg(byte[] data, int length) {
-        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+    public static CommonMsgResponse decomposeEnterStationIdReturnMsg(byte[] data, int length, short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
         return commonMsgResponse;
     }
 
@@ -217,9 +238,17 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         return getAllLightsStatusMsg;
     }
 
-    public static CommonMsgResponse decomposeMultiStationBrightControlResponse(byte[] data,int length) {
-        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+    public static CommonMsgResponse decomposeMultiStationBrightControlResponse(byte[] data,int length,short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
         return commonMsgResponse;
+    }
+
+    public static SearchStationsMsg composeSearchStationsMsg(byte seconds) {
+        SearchStationsMsg searchStationsMsg = new SearchStationsMsg();
+        searchStationsMsg.setLastSeconds(seconds);
+        searchStationsMsg.buildUp();
+
+        return searchStationsMsg;
     }
 
     public static MultiStationBrightControlMsg composeMultiStationBrightControlMsg(short[] ids, byte[] brightArr) {
@@ -266,8 +295,8 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
      * @param length
      * @return
      */
-    public static CommonMsgResponse decomposeStationColorControlMsg(byte[]data, int length) {
-        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data);
+    public static CommonMsgResponse decomposeStationColorControlMsg(byte[]data, int length, short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
         return commonMsgResponse;
     }
 

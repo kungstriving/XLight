@@ -140,6 +140,13 @@ public class DataAgent {
         CommIntentService.startActionSetStationColor(context, stationID, hsb, receiver);
     }
 
+    public void searchNewStations(Context context, byte lastSecs, ResultReceiver receiver) {
+        CommIntentService.startActionSearchNewStations(context, lastSecs, receiver);
+    }
+
+    public void deleteStation(Context context,short stationID, ResultReceiver receiver) {
+        CommIntentService.startActionDeleteStation(context, stationID, receiver);
+    }
     /**
      * 设置多个站点亮度
      * @param context

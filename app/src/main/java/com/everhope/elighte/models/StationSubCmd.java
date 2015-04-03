@@ -7,7 +7,7 @@ import com.everhope.elighte.constants.FunctionCodes;
  * Created by kongxiaoyang on 2015/3/21.
  */
 public class StationSubCmd {
-    private static FunctionCodes.SubFunctionCodes subFunctionCode;
+    private FunctionCodes.SubFunctionCodes subFunctionCode;
 
     /**
      * 从字节数组获取站点子命令定义
@@ -22,7 +22,7 @@ public class StationSubCmd {
 
         //获取子命令类型
         byte subCmdType = bytes[0];
-        subFunctionCode = FunctionCodes.SubFunctionCodes.fromSubFunctionCodeByte(subCmdType);
+        FunctionCodes.SubFunctionCodes subFunctionCode = FunctionCodes.SubFunctionCodes.fromSubFunctionCodeByte(subCmdType);
         switch (subFunctionCode) {
             case DEVICE_STATUS:
                 StationDeviceStatusCmd stationDeviceStatusCmd = new StationDeviceStatusCmd();

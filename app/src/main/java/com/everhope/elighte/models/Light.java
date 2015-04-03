@@ -61,7 +61,7 @@ public class Light extends Model{
     public int brightness;
 
     public List<LightGroup> lightGroups() {
-        return getMany(LightGroup.class, "SUBGROUP");
+        return getMany(LightGroup.class, "LIGHT");
     }
 
     public List<LightScene> lightScenes () {
@@ -81,6 +81,12 @@ public class Light extends Model{
     public static Light getByLightID(String lightID) {
         return new Select().from(Light.class)
                 .where("LIGHT_ID = ?", lightID)
+                .executeSingle();
+    }
+
+    public static Light getByLightMAC(String lightMAC) {
+        return new Select().from(Light.class)
+                .where("LIGHT_MAC = ?",lightMAC)
                 .executeSingle();
     }
 

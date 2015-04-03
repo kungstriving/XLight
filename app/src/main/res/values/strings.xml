@@ -25,7 +25,6 @@
         <item>遥控</item>
         <item>设置</item>
     </string-array>
-
     <string-array name="wifi_security_arr">
         <item>WPA2 PSK</item>
         <item>WPA PSK</item>
@@ -35,7 +34,7 @@
     <string name="title_activity_load">LoadActivity</string>
     <!-- 错误码 -->
     <string name="ec_12293">该灯目前不可用</string>
-<!-- ######################### 颜色 ############################### -->
+    <!-- ######################### 颜色 ############################### -->
     <color name="main_back">#303238</color>
     <color name="white">#FFFFFF</color> <!-- 白色 -->
     <color name="ivory">#FFFFF0</color> <!-- 象牙色 -->
@@ -196,4 +195,7 @@
 
     <drawable name="color_selected">#DAA520</drawable>
     <drawable name="color_normal">#F5F5F5</drawable>
+
+    <string name="title_activity_delete_devices">DeleteDevicesActivity</string>
+
 </resources>

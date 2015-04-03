@@ -150,6 +150,11 @@ public class Constants {
          * 网关连接重试间隔毫秒数
          */
         public static final int CONNECT_RETRY_INTERVAL_MS = 500;
+
+        /**
+         * 搜索新站点的持续时间
+         */
+        public static final byte SEARCH_STATIONS_LAST_SECONDS = 30;
     }
 
     /**

@@ -128,7 +128,13 @@ public class SyncIntentService extends IntentService {
             int readedNum = is.read(tempBytes);
             readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
             socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_SOTIMEOUT);
-            GetStationsStatusMsgResponse getStationsStatusMsgResponse = MessageUtils.decomposeGetStationsStatusMsgResponse(readedBytes, readedBytes.length);
+            GetStationsStatusMsgResponse getStationsStatusMsgResponse = null;
+            try {
+                getStationsStatusMsgResponse = MessageUtils.decomposeGetStationsStatusMsgResponse(readedBytes, readedBytes.length, msgID);
+            } catch (Exception e) {
+                Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                return;
+            }
             Log.i(TAG, String.format("批量获取站点状态回应消息 [%s]",getStationsStatusMsgResponse.toString()));
             handleMessageReturn(getStationsStatusMsgResponse, msgID);
 

@@ -62,7 +62,7 @@
         </activity>
         <activity
             android:name=".activities.LightListActivity"
-            android:label="@string/title_activity_light_list">
+            android:label="@string/title_activity_light_list" >
         </activity>
         <activity
             android:name=".activities.ChooseLightActivity"
@@ -99,6 +99,11 @@
             android:name=".comm.UDPIntentService"
             android:exported="false" >
         </service>
+
+        <activity
+            android:name=".activities.DeleteDevicesActivity"
+            android:label="@string/title_activity_delete_devices" >
+        </activity>
     </application>
 
 </manifest>

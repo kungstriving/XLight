@@ -82,9 +82,9 @@ public class ChooseLightActivity extends ActionBarActivity {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.choose_light_item, parent, false);
             }
-
+//            convertView = LayoutInflater.from(ChooseLightActivity.this).inflate(R.layout.choose_light_item, parent,false);
             Light light = getItem(position);
-            TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
+            TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
             textView.setText(light.name);
             return convertView;
         }

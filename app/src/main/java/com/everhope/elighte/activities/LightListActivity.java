@@ -36,6 +36,8 @@ import com.everhope.elighte.models.LightGroup;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.SubGroup;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -93,15 +95,17 @@ public class LightListActivity extends ActionBarActivity {
                         if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                             //读到了回应消息
                             byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                            short isShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                             //解析回应消息
-                            CommonMsgResponse enterStationIdReturnMsg = MessageUtils.decomposeEnterStationIdReturnMsg(msgBytes, msgBytes.length);
-                            //检测消息ID
-                            short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                            if (enterStationIdReturnMsg.getMessageID() != msgRandID) {
-                                Log.w(TAG, "消息ID不匹配");
-                                Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                            CommonMsgResponse enterStationIdReturnMsg = null;
+                            try {
+                                enterStationIdReturnMsg = MessageUtils.decomposeEnterStationIdReturnMsg(msgBytes, msgBytes.length, isShould);
+                            } catch (Exception e) {
+                                Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                                Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
                                 return;
                             }
+
                             if (enterStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
                                 Log.w(TAG, String.format("消息返回错误[%s]", enterStationIdReturnMsg.getReturnCode() + ""));
                                 Toast.makeText(LightListActivity.this, AppUtils.getErrorInfo(enterStationIdReturnMsg.getReturnCode() + ""), Toast.LENGTH_LONG).show();
@@ -177,12 +181,14 @@ public class LightListActivity extends ActionBarActivity {
                     if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                         //读到了回应消息
                         byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                         //解析回应消息
-                        CommonMsgResponse exitStationIdReturnMsg = MessageUtils.decomposeExitStationIdReturnMsg(msgBytes, msgBytes.length);
-                        //检测消息ID
-                        short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                        if (exitStationIdReturnMsg.getMessageID() != msgRandID) {
-                            Log.w(TAG, "消息ID不匹配");
+                        CommonMsgResponse exitStationIdReturnMsg = null;
+                        try {
+                            exitStationIdReturnMsg = MessageUtils.decomposeExitStationIdReturnMsg(msgBytes, msgBytes.length, idShould);
+                        } catch (Exception e) {
+                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                            Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
                             return;
                         }
                         if (exitStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
@@ -232,12 +238,14 @@ public class LightListActivity extends ActionBarActivity {
                     if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                         //读到了回应消息
                         byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        short isShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                         //解析回应消息
-                        CommonMsgResponse exitStationIdReturnMsg = MessageUtils.decomposeExitStationIdReturnMsg(msgBytes, msgBytes.length);
-                        //检测消息ID
-                        short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                        if (exitStationIdReturnMsg.getMessageID() != msgRandID) {
-                            Log.w(TAG, "消息ID不匹配");
+                        CommonMsgResponse exitStationIdReturnMsg = null;
+                        try {
+                            exitStationIdReturnMsg = MessageUtils.decomposeExitStationIdReturnMsg(msgBytes, msgBytes.length, isShould);
+                        } catch (Exception e) {
+                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                            Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
                             return;
                         }
                         if (exitStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {

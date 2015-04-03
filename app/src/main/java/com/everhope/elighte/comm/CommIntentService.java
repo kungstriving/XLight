@@ -12,10 +12,12 @@ import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.ClientLoginMsg;
+import com.everhope.elighte.models.DeleteStationMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.ExitStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.MultiStationBrightControlMsg;
+import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.StationColorControlMsg;
@@ -77,6 +79,10 @@ public class CommIntentService extends IntentService {
 
     private static final String ACTION_SET_MULTI_STATION_BRIGHT = "com.everhope.xlight.comm.action.set.multi.station.bright";
 
+    private static final String ACTION_SEARCH_NEW_STATIONS = "action.search.new.stations";
+
+    private static final String ACTION_DELETE_STATION = "action.delete.station";
+
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
      * 消息接收器
@@ -120,6 +126,8 @@ public class CommIntentService extends IntentService {
 
     private static final String EXTRA_MULTI_STATION_BRIGHT = "com.everhope.xlight.comm.extra.multi.station.bright";
 
+    private static final String EXTRA_SEARCH_LAST_SECONDS = "extra.search.last.seconds";
+
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
 
     /**
@@ -136,6 +144,25 @@ public class CommIntentService extends IntentService {
 
         intent.putExtra(EXTRA_STATION_ID, stationID);
         intent.putExtra(EXTRA_HSB_COLOR, hsb);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
+
+    public static void startActionDeleteStation(Context context, short stationID, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_DELETE_STATION);
+        intent.putExtra(EXTRA_STATION_ID, stationID);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
+
+    public static void startActionSearchNewStations(Context context, byte lastSecs, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_SEARCH_NEW_STATIONS);
+
+        intent.putExtra(EXTRA_SEARCH_LAST_SECONDS, lastSecs);
         intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
 
         context.startService(intent);
@@ -324,18 +351,24 @@ public class CommIntentService extends IntentService {
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     handleActionGetAllLights(receiver);
                     break;
+                case ACTION_SERVICE_DISCOVER:
+                    //服务发现
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionServiceDis(receiver);
+                    break;
                 case ACTION_DETECT_GATE:
                     //网关侦测
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
 //                    handleActionDetectGate(receiver);
                     handleActionDetectGateBroadcast(receiver);
                     break;
-                case ACTION_SERVICE_DISCOVER:
-                    //服务发现
+                case ACTION_SEARCH_NEW_STATIONS:
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
-                    handleActionServiceDis(receiver);
+                    byte secs = intent.getByteExtra(EXTRA_SEARCH_LAST_SECONDS, (byte)30);
+                    handleActionSearchStations(secs, receiver);
                     break;
                 case ACTION_ENTER_STATION_ID:
+                    //进入站点识别
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     String stationID = intent.getStringExtra(EXTRA_STATION_ID);
                     handleActionEnterStationID(stationID, receiver);
@@ -360,6 +393,12 @@ public class CommIntentService extends IntentService {
                     String pwd = intent.getStringExtra(EXTRA_NET_PWD);
                     handleActionSetNetwork(ssid,securityType, pwd, receiver);
                     break;
+                case ACTION_DELETE_STATION:
+                    //删除站点
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    short stationIDToDelete = intent.getShortExtra(EXTRA_STATION_ID, (short)0);
+                    handleActionDeleteStation(stationIDToDelete, receiver);
+                    break;
                 default:
                     break;
             }
@@ -367,8 +406,91 @@ public class CommIntentService extends IntentService {
         }
     }
 
-
     /////////////////////////////// 服务处理 ///////////////////////////////////
+
+    private void handleActionDeleteStation(short id, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        DeleteStationMsg deleteStationMsg = MessageUtils.composeDeleteStationMsg(id);
+
+        Log.d(TAG, String.format("删除站点-消息[%s]", deleteStationMsg.toString()));
+
+        byte[] bytes = deleteStationMsg.toMessageByteArray();
+        short msgID = deleteStationMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
+    private void handleActionSearchStations(byte secs, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        SearchStationsMsg searchStationMsg = MessageUtils.composeSearchStationsMsg(secs);
+
+        Log.d(TAG, String.format("搜索新站点-消息[%s]", searchStationMsg.toString()));
+
+        byte[] bytes = searchStationMsg.toMessageByteArray();
+        short msgID = searchStationMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        //搜寻新站点 线程暂停
+        try {
+            Thread.sleep(60*1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        receiver.send(resultCode, resultData);
+    }
 
     private void handleActionSetMultiStationsBright(short[] ids, byte[] brights, ResultReceiver receiver) {
         int resultCode = 0;
@@ -422,7 +544,7 @@ public class CommIntentService extends IntentService {
 
         StationColorControlMsg stationColorControlMsg = MessageUtils.composeStationColorControlMsg(stationID,hsb);
 
-        Log.d(TAG, String.format("调节站点颜色-消息[%s]", stationColorControlMsg.toString()));
+        Log.i(TAG, String.format("调节站点颜色-消息[%s]", stationColorControlMsg.toString()));
 
         byte[] bytes = stationColorControlMsg.toMessageByteArray();
         short msgID = stationColorControlMsg.getMessageID();

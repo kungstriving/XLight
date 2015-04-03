@@ -43,6 +43,7 @@ import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,13 +133,14 @@ public class SceneEditActivity extends ActionBarActivity {
                             if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                                 //读到了回应消息
                                 byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                                short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                                 //解析回应消息
-                                CommonMsgResponse msgResponse = MessageUtils.decomposeStationColorControlMsg(msgBytes, msgBytes.length);
-                                Log.i(TAG, String.format("调节颜色返回消息 [%s]", msgResponse.toString()));
-                                //检测消息ID
-                                short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                                if (msgResponse.getMessageID() != msgRandID) {
-                                    Log.w(TAG, "消息ID不匹配");
+                                CommonMsgResponse msgResponse = null;
+                                try {
+                                    msgResponse = MessageUtils.decomposeStationColorControlMsg(msgBytes, msgBytes.length, idShould);
+                                } catch (Exception e) {
+                                    Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                                    Toast.makeText(SceneEditActivity.this, "消息错误",Toast.LENGTH_LONG).show();
                                     return;
                                 }
                                 if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {

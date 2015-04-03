@@ -34,6 +34,8 @@ import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -220,12 +222,14 @@ public class HomeFragment extends Fragment{
                         if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                             //读到了回应消息
                             byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                            short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                             //解析回应消息
-                            CommonMsgResponse msgResponse = MessageUtils.decomposeMultiStationBrightControlResponse(msgBytes, msgBytes.length);
-                            //检测消息ID
-                            short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                            if (msgResponse.getMessageID() != msgRandID) {
-                                Log.w(TAG, "消息ID不匹配");
+                            CommonMsgResponse msgResponse = null;
+                            try {
+                                msgResponse = MessageUtils.decomposeMultiStationBrightControlResponse(msgBytes, msgBytes.length, idShould);
+                            } catch (Exception e) {
+                                Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                                Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
                                 return;
                             }
                             //检测操作结果

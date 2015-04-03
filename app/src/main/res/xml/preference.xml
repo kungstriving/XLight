@@ -12,9 +12,11 @@
             android:key="ss_gate_desc"/>
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="我的灯">
-        <Preference android:title="搜索新灯" >
-            <intent android:action=".activities.SearchGateActivity"/>
+    <PreferenceCategory android:title="我的设备">
+        <Preference android:title="搜索设备" android:key="search_new_lights" >
+        </Preference>
+        <Preference android:title="删除设备" android:key="delete_devices">
+
         </Preference>
     </PreferenceCategory>
 
