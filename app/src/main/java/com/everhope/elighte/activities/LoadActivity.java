@@ -81,11 +81,6 @@ public class LoadActivity extends ActionBarActivity {
         PreferenceManager.setDefaultValues(this, R.xml.preference, false);
 
         this.debug = sharedPreferences.getBoolean(Constants.SYSTEM_SETTINGS.DEBUG, false);
-
-//        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
-//
-//        editor.putString(Constants.SYSTEM_SETTINGS.PREFS_GATE_MAC, "-----");
-//        editor.commit();
     }
 
     /**
@@ -196,7 +191,7 @@ public class LoadActivity extends ActionBarActivity {
                 } catch (IOException e) {
                     //建立连接sta失败 则广播搜索
                     Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
-                    handler.sendEmptyMessage(-1);
+                    handler.sendEmptyMessage(HANDLER_STA_CONNECT_FAIL);
                     return;
                 }
 
@@ -326,18 +321,13 @@ public class LoadActivity extends ActionBarActivity {
                     //解析消息
                     int bytesCount = resultData.getInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT);
                     byte[] bytesData = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
-
+                    short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
                     ClientLoginMsgResponse logonResponseMsg = null;
                     try {
-                        logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount);
+                        logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount, idShould);
                     } catch (Exception e) {
                         e.printStackTrace();
                         Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                        return;
-                    }
-                    short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                    if (logonResponseMsg.getMessageID() != msgRandID) {
-                        Log.w(TAG, "消息ID不匹配");
                         return;
                     }
 

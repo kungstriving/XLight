@@ -42,6 +42,14 @@ public class DataAgent {
 
     ///////////////////////////// 通信接口定义 ///////////////////////////////////
 
+    public void bindStationToRemoter(Context context, short remoterID, byte controlNum, short[] stationIDs, ResultReceiver receiver) {
+        CommIntentService.startActionBindStationToRemoter(context,remoterID,controlNum,stationIDs,receiver);
+    }
+
+    public void sendSceneControlCmd(Context context, short[] stationIDs, int[] colors, ResultReceiver receiver) {
+        CommIntentService.startActionSendSceneControlCmd(context, stationIDs, colors, receiver);
+    }
+
     /**
      * 服务发现
      * @param context

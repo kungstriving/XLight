@@ -466,19 +466,14 @@ public class APSetupActivity extends ActionBarActivity {
                     //解析消息
                     int bytesCount = resultData.getInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT);
                     byte[] bytesData = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                    short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
 
                     ClientLoginMsgResponse logonResponseMsg = null;
                     try {
-                        logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount);
+                        logonResponseMsg = MessageUtils.decomposeLogonReturnMsg(bytesData, bytesCount, idShould);
                     } catch (Exception e) {
                         e.printStackTrace();
                         Log.w(TAG, String.format("消息解析出错 [%s]", e.getMessage()));
-                        return;
-                    }
-                    //获取发送的ID
-                    short msgRandID = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                    if (logonResponseMsg.getMessageID() != msgRandID) {
-                        Log.w(TAG, "消息ID不匹配");
                         return;
                     }
 

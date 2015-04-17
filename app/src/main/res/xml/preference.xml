@@ -2,18 +2,14 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory android:title="我的网关">
-        <Preference android:title="网关IP"
-            android:key="ss_gate_sta_ip" />
-        <Preference android:title="物理地址"
-            android:key="ss_gate_mac"/>
-        <Preference android:title="网关版本"
-            android:key="ss_gate_ver" />
         <Preference android:title="网关信息"
-            android:key="ss_gate_desc"/>
+            android:key="ss_gate_desc">
+            <intent android:action=".activities.GateInfoPrefsActivity"/>
+        </Preference>
     </PreferenceCategory>
 
     <PreferenceCategory android:title="我的设备">
-        <Preference android:title="搜索设备" android:key="search_new_lights" >
+        <Preference android:title="同步设备" android:key="search_new_lights" >
         </Preference>
         <Preference android:title="删除设备" android:key="delete_devices">
 

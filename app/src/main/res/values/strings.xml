@@ -197,5 +197,9 @@
     <drawable name="color_normal">#F5F5F5</drawable>
 
     <string name="title_activity_delete_devices">DeleteDevicesActivity</string>
+    <string name="title_activity_gate_info_prefs">网关信息</string>
+    <string name="title_activity_group_control">GroupControlActivity</string>
+    <string name="title_activity_remote_control">RemoteControlActivity</string>
+    <string name="title_activity_remoter_group">RemoterGroupActivity</string>
 
 </resources>

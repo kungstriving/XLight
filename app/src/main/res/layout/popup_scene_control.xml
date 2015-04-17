@@ -4,25 +4,29 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:background="#001122">
-    <TextView
+
+    <ImageView
+        android:id="@+id/scene_power_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
         android:layout_weight="1"
-        android:text="关闭"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:textColor="#ffffff" />
+        android:background="@color/main_back"
+        android:src="@drawable/scene_switch_off"
+        android:layout_gravity="center_vertical"/>
+
     <SeekBar
         android:id="@+id/scene_bright_sb"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
+        android:background="@color/main_back"
         android:layout_weight="8"/>
     <ImageView
         android:id="@+id/scene_control_edit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:background="@color/main_back"
         android:layout_gravity="center_vertical"
-        android:src="@drawable/ic_action_edit"/>
+        android:src="@drawable/scene_detail"/>
 </LinearLayout>

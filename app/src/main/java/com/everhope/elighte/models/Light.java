@@ -68,6 +68,9 @@ public class Light extends Model{
         return getMany(LightScene.class, "LIGHT");
     }
 
+    public List<LightRemoter> lightRemoters() {
+        return getMany(LightRemoter.class, "LIGHT");
+    }
     /**
      * 获取所有灯列表
      * @return

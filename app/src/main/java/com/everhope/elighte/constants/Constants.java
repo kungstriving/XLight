@@ -47,6 +47,9 @@ public class Constants {
      * 系统设置
      */
     public static class SYSTEM_SETTINGS {
+
+        public static final String ELIGHTE = "E-Lighte";
+
         /**
          * 是否已经加载过
          */
@@ -124,7 +127,7 @@ public class Constants {
         /**
          * 同步数据间隔60秒
          */
-        public static final int SYNC_INTERVAL = 3*60000;
+        public static final int SYNC_INTERVAL = 60000;
 
         /**
          * 建立连接超时 16秒
@@ -154,7 +157,7 @@ public class Constants {
         /**
          * 搜索新站点的持续时间
          */
-        public static final byte SEARCH_STATIONS_LAST_SECONDS = 30;
+        public static final byte SEARCH_STATIONS_LAST_SECONDS = 60;
     }
 
     /**

@@ -56,7 +56,6 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     private ProgressDialog progressDialog;
     private String mHelloSettings;
 
-
     /**
      *
      * @param paramHelloSettings
@@ -71,11 +70,11 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         // Required empty public constructor
     }
 
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preference);
+
         this.handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -115,24 +114,6 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         PreferenceManager preferenceManager = getPreferenceManager();
         Preference preference;
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-
-        preference = preferenceManager.findPreference(Constants.SYSTEM_SETTINGS.GATE_STA_IP);
-        String gateStaIP = sharedPreferences.getString(Constants.SYSTEM_SETTINGS.GATE_STA_IP, "--");
-        preference.setSummary(gateStaIP);
-
-        preference = preferenceManager.findPreference(Constants.SYSTEM_SETTINGS.GATE_MAC);
-        String gateMac = sharedPreferences.getString(Constants.SYSTEM_SETTINGS.GATE_MAC, "--");
-        preference.setSummary(gateMac);
-
-        preference = preferenceManager.findPreference(Constants.SYSTEM_SETTINGS.GATE_VER);
-        String gateVer = sharedPreferences.getString(Constants.SYSTEM_SETTINGS.GATE_VER, "--");
-        preference.setSummary(gateVer);
-
-        preference = preferenceManager.findPreference(Constants.SYSTEM_SETTINGS.GATE_DESC);
-        String gateDesc = sharedPreferences.getString(Constants.SYSTEM_SETTINGS.GATE_DESC, "--");
-        preference.setSummary(gateDesc);
-
         //添加事件响应
         preference = preferenceManager.findPreference("search_new_lights");
         preference.setOnPreferenceClickListener(new SearchNewLightsListener());
@@ -164,7 +145,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     class SearchNewLightsListener implements Preference.OnPreferenceClickListener {
         @Override
         public boolean onPreferenceClick(Preference preference) {
-            progressDialog = ProgressDialog.show(getActivity(), "E-Lighte","搜索新灯...",true);
+            progressDialog = ProgressDialog.show(getActivity(), "E-Lighte","搜索一分钟，请耐心等待...",true);
             progressDialog.setCancelable(true);
 
             DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
@@ -223,6 +204,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                     try {
                         getAllStationsMsgResponse = MessageUtils.decomposeGetAllStationsMsgResponse(msgBytes, msgBytes.length, idShould);
                     } catch (Exception e) {
+                        progressDialog.dismiss();
                         Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
                         Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
                         return;
@@ -262,6 +244,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                                 if (light.lightMac.equals(stationObject.getMac())) {
                                     //已存在 不用新增
                                     add = false;
+                                    light.lightID = stationObject.getId() + "";
+                                    light.save();
                                     break;
                                 }
                             }
@@ -271,6 +255,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                                 Light newLight = new Light();
                                 newLight.lightID = stationObject.getId() + "";
                                 newLight.name = "[" + stationObject.getMac() + "]";
+                                newLight.lightMac = stationObject.getMac();
                                 //新增的灯加入到未分组 组中
                                 SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
                                 LightGroup lightGroup = new LightGroup();

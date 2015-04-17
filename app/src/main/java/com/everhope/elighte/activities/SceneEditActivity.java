@@ -28,6 +28,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -87,6 +88,8 @@ public class SceneEditActivity extends ActionBarActivity {
     private boolean loaded = false;
     //是否向网关发送颜色消息
     private boolean sendColor = true;
+    //场景名称
+    private String title = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +104,7 @@ public class SceneEditActivity extends ActionBarActivity {
             this.scene = Scene.load(Scene.class, sceneID);
             this.lightScenes = scene.lightScenes();
             setTitle(scene.name);
+            this.title = scene.name;
         } else {
             Toast.makeText(SceneEditActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
         }
@@ -225,29 +229,34 @@ public class SceneEditActivity extends ActionBarActivity {
         //light handle 根据数据库lights数量
         for(int i = 0; i<lightScenes.size(); i++) {
             LightScene lightScene = lightScenes.get(i);
-            Light light = lightScene.light;
+            final Light light = lightScene.light;
             final ImageView lightIV = new ImageView(SceneEditActivity.this);
             lightIV.setTag(i+"");
             lightIV.setImageResource(R.drawable.light_icon);
-            lightIV.setOnTouchListener(new View.OnTouchListener() {
+            if (light.lostConnection) {
+//                lightIV.setBackgroundColor(getResources().getColor(R.color.lightgray));
+                lightIV.setBackgroundDrawable(getResources().getDrawable(R.drawable.light_offline_border));
+            } else {
+                lightIV.setOnTouchListener(new View.OnTouchListener() {
 
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
 
-                    ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
+                        ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
 
-                    String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
-                    ClipData dragData = new ClipData(v.getTag().toString(),
-                            mimeTypes, item);
+                        String[] mimeTypes = {ClipDescription.MIMETYPE_TEXT_PLAIN};
+                        ClipData dragData = new ClipData(v.getTag().toString(),
+                                mimeTypes, item);
 
-                    // 实例化拖动阴影
-                    View.DragShadowBuilder lightShadow = new MyDragShadowBuilder(lightIV);
+                        // 实例化拖动阴影
+                        View.DragShadowBuilder lightShadow = new MyDragShadowBuilder(lightIV);
 
-                    v.startDrag(dragData, lightShadow, v, 0);
-                    v.setVisibility(View.INVISIBLE);
-                    return true;
-                }
-            });
+                        v.startDrag(dragData, lightShadow, v, 0);
+                        v.setVisibility(View.INVISIBLE);
+                        return true;
+                    }
+                });
+            }
 
             FrameLayout.LayoutParams lightLP = new FrameLayout.LayoutParams(80, 80);
             lightLP.leftMargin = lightScene.x;
@@ -279,9 +288,12 @@ public class SceneEditActivity extends ActionBarActivity {
             View view = (View)event.getLocalState();        //light-icon view
             int lightIndex = Integer.parseInt(view.getTag().toString());
             LightScene lightScene = lightScenes.get(lightIndex);
-            String lightID = lightScene.light.lightID;
+            final String lightID = lightScene.light.lightID;
+            String lightName = lightScene.light.name;
             switch (action) {
                 case DragEvent.ACTION_DRAG_STARTED:
+
+                    setTitle(title + " - " + lightName);
                     return true;
                 case DragEvent.ACTION_DRAG_ENTERED:
                     return true;
@@ -349,10 +361,22 @@ public class SceneEditActivity extends ActionBarActivity {
                     if (y > colorPickerHeight - 1) {
                         y = colorPickerHeight - 1;
                     }
-                    clrPix = colorPickerBitmap.getPixel(x, y);
-                    lightScene.rColor = Color.red(clrPix);
-                    lightScene.gColor = Color.green(clrPix);
-                    lightScene.bColor = Color.blue(clrPix);
+                    final int dropClrPix = colorPickerBitmap.getPixel(x, y);
+                    lightScene.rColor = Color.red(dropClrPix);
+                    lightScene.gColor = Color.green(dropClrPix);
+                    lightScene.bColor = Color.blue(dropClrPix);
+
+                    //拖动结束前再进行一次发送 确保最终看到的结果一致
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            Message lastColorMsg = new Message();
+                            lastColorMsg.what = dropClrPix;
+                            lastColorMsg.arg1 = Integer.parseInt(lightID);
+                            topIVHandler.sendMessage(lastColorMsg);
+                        }
+                    }, 500);
+
                     return true;
                 case DragEvent.ACTION_DRAG_ENDED:
                     return true;

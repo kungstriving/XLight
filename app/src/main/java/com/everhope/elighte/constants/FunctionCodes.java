@@ -33,6 +33,50 @@ public class FunctionCodes {
     }
 
     /**
+     * 遥控功能码
+     */
+    public static enum RemoteControl {
+        REMOTE_CONTROL_OP((byte)-128),
+
+        //////////////////////// 子功能码
+
+        /**
+         * 设备开关
+         */
+        DEVICE_ONOFF(Byte.decode("0x01")),
+
+        /**
+         * 开关绑定站点
+         */
+        SWITCH_BIND_STATION(Byte.decode("0x10")),
+
+        /**
+         * 开关解绑定站点
+         */
+        SWITCH_UNBIND_STATION(Byte.decode("0x11")),
+
+        /**
+         * 遥控器绑定站点
+         */
+        REMOTER_BIND_STATION(Byte.decode("0x20")),
+
+        /**
+         * 遥控器解绑定站点
+         */
+        REMOTER_UNBIND_STATION(Byte.decode("0x21"));
+
+        private byte funcCode;
+
+        private RemoteControl(byte code) {
+            this.funcCode = code;
+        }
+
+        public byte getFuncCode() {
+            return this.funcCode;
+        }
+    }
+
+    /**
      * 遥信功能码
      */
     public static enum RemoteSignal {
@@ -145,6 +189,27 @@ public class FunctionCodes {
          * 设备状态
          */
         DEVICE_STATUS((byte)-128),
+
+        /**
+         * 开关设备绑定
+         */
+        BIND_SWITCH(Byte.decode("0x10")),
+
+        /**
+         * 开关设备解绑定
+         */
+        UNBIND_SWITCH(Byte.decode("0x11")),
+
+        /**
+         * 遥控器设备绑定
+         */
+        BIND_REMOTER(Byte.decode("0x20")),
+
+        /**
+         * 遥控器设备解绑定
+         */
+        UNBIND_REMOTER(Byte.decode("0x21")),
+
         /**
          * 设备开关
          */

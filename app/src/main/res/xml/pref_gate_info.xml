@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="我的网关">
+        <Preference android:title="网关IP"
+            android:key="ss_gate_sta_ip" />
+        <Preference android:title="物理地址"
+            android:key="ss_gate_mac"/>
+        <Preference android:title="网关版本"
+            android:key="ss_gate_ver" />
+    </PreferenceCategory>
+</PreferenceScreen>

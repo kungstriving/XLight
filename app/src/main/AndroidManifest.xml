@@ -93,7 +93,7 @@
             android:value="1" />
         <meta-data
             android:name="AA_MODELS"
-            android:value="com.everhope.elighte.models.Scene,                                        com.everhope.elighte.models.Light,                                        com.everhope.elighte.models.SubGroup,                                        com.everhope.elighte.models.LightGroup,                                        com.everhope.elighte.models.LightScene" />
+            android:value="com.everhope.elighte.models.Scene,             com.everhope.elighte.models.Light,             com.everhope.elighte.models.SubGroup,             com.everhope.elighte.models.LightGroup,             com.everhope.elighte.models.LightScene,             com.everhope.elighte.models.Remoter,             com.everhope.elighte.models.LightRemoter" />
 
         <service
             android:name=".comm.UDPIntentService"
@@ -103,6 +103,27 @@
         <activity
             android:name=".activities.DeleteDevicesActivity"
             android:label="@string/title_activity_delete_devices" >
+        </activity>
+        <activity
+            android:name=".activities.GateInfoPrefsActivity"
+            android:label="@string/title_activity_gate_info_prefs" >
+            <intent-filter>
+                <action android:name=".activities.GateInfoPrefsActivity" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".activities.GroupControlActivity"
+            android:label="@string/title_activity_group_control" >
+        </activity>
+        <activity
+            android:name=".activities.RemoteControlActivity"
+            android:label="@string/title_activity_remote_control" >
+        </activity>
+        <activity
+            android:name=".activities.RemoterGroupActivity"
+            android:label="@string/title_activity_remoter_group" >
         </activity>
     </application>
 

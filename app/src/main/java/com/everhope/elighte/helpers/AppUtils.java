@@ -192,6 +192,7 @@ public class AppUtils {
     public static byte[] rgbColorValueToHSB(int colorValue) {
         byte[] hsb = new byte[3];
         float[] tempHSB = new float[3];
+
         RGBtoHSB(Color.red(colorValue), Color.green(colorValue), Color.blue(colorValue), tempHSB);
 //        RGBtoHSB(255,0,0,tempHSB);
         int hValue = (int)Math.floor(tempHSB[0] * 254 + 0.5);

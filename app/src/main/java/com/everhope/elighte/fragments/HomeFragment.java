@@ -3,6 +3,7 @@ package com.everhope.elighte.fragments;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -126,6 +127,7 @@ public class HomeFragment extends Fragment{
                 final PopupWindow popup = new PopupWindow(getActivity());
                 //设置弹出窗口的样式
                 View layout = getActivity().getLayoutInflater().inflate(R.layout.popup_scene_control, null);
+
                 popup.setContentView(layout);
                 // Set content width and height
                 popup.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
@@ -152,11 +154,22 @@ public class HomeFragment extends Fragment{
                 });
 
                 //添加场景亮度调节
-                SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
+                final SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
                 seekBar.setProgress(scene.brightness);
 
                 BrightChangeListener brightChangeListener = new BrightChangeListener(scene);
                 seekBar.setOnSeekBarChangeListener(brightChangeListener);
+
+                //添加设置场景亮度为0的事件
+                layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        seekBar.setProgress(0);
+                    }
+                });
+
+                //发送整个场景的设置命令
+                sendScenePackControl(scene);
             }
         });
 
@@ -172,6 +185,56 @@ public class HomeFragment extends Fragment{
         scenePane.addView(sceneText, textLayoutParams);
 
         return scenePane;
+    }
+
+    private void sendScenePackControl(Scene scene) {
+        //获取当前场景的所有站点的id和颜色
+        List<LightScene> lightScenes = scene.lightScenes();
+        if (lightScenes.size() != 0) {
+            int length = lightScenes.size();
+            short[] ids = new short[length];
+            int[] colors = new int[length];
+            for(int i = 0; i < length; i++) {
+                LightScene lightScene = lightScenes.get(i);
+                ids[i] = Short.parseShort(lightScene.light.lightID);
+                int r = lightScene.rColor;
+                int g = lightScene.gColor;
+                int b = lightScene.bColor;
+                colors[i] = Color.rgb(r,g,b);
+            }
+
+            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+            dataAgent.sendSceneControlCmd(getActivity(), ids, colors, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                        //读到了回应消息
+                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                        //解析回应消息
+                        CommonMsgResponse msgResponse = null;
+                        try {
+                            msgResponse = MessageUtils.decomposeCommonMsgResponse(msgBytes,msgBytes.length,idShould);
+                            Log.i(TAG, String.format("场景控制命令返回-[%s]", msgResponse.toString()));
+                        } catch (Exception e) {
+                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                            Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        //检测操作结果
+                        if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                            Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                    } else {
+                        Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "错误码 " + resultCode);
+                    }
+                }
+            });
+        }
+
     }
 
     /**

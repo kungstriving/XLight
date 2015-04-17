@@ -3,22 +3,31 @@
     android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/whitesmoke">
+    android:background="@color/main_back">
 
     <ImageView
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_margin="5dp"
         android:layout_gravity="center_vertical"
+        android:layout_weight="1"
         android:src="@drawable/light_icon"/>
     <TextView
         android:id="@+id/choose_light_name_tv"
-        android:layout_width="match_parent"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceListItemSmall"
         android:gravity="center_vertical"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
+        android:layout_weight="8"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_margin="5dp"
+        android:layout_gravity="center_vertical"
+        android:id="@+id/select_light_cb" />
 </LinearLayout>

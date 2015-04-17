@@ -16,6 +16,35 @@ public class SubGroup extends Model {
     @Column(name="NAME")
     public String name;
 
+    /**
+     * 分组亮度
+     */
+    @Column(name="BRIGHTNESS")
+    public int brightness;
+
+    /**
+     * R
+     */
+    @Column(name="R_COLOR")
+    public int rColor;
+
+    /**
+     * G
+     */
+    @Column(name="G_COLOR")
+    public int gColor;
+
+    /**
+     * B
+     */
+    @Column(name="B_COLOR")
+    public int bColor;
+
+    @Column(name="x")
+    public int x;
+    @Column(name="y")
+    public int y;
+
     public List<LightGroup> lightGroups() {
 //        new Select().from(LightGroup.class).where("")
         return getMany(LightGroup.class, "SUBGROUP");

@@ -47,6 +47,7 @@ import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.LightScene;
+import com.everhope.elighte.models.Remoter;
 import com.everhope.elighte.models.SubGroup;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
@@ -145,74 +146,28 @@ public class MainActivity extends ActionBarActivity {
                     //取出当前数据库表中的所有站点进行比对
                     //新增 或 删除
                     List<Light> myLights = Light.getAll();
-                    StationObject[] gateAllLights = getAllStationsMsgResponse.getStationObjects();
-                    int length = gateAllLights.length;
-                    //判断删除
-                    for (Light light : myLights) {
+                    List<Remoter> myRemoters = Remoter.getAll();
 
-                        boolean delete = true;
-                        for(int i = 0; i < length; i++) {
-                            if (light.lightMac != null && light.lightMac.equals(gateAllLights[i].getMac())) {
-                                delete = false;
+                    StationObject[] gateAllStations = getAllStationsMsgResponse.getStationObjects();
+
+                    //判断删除可以不用做 可能引起不必要的麻烦 可以使用设置菜单中的删除设备按钮
+                    //判断新增或修改
+
+                    for (StationObject stationObject : gateAllStations) {
+                        //遍历当前站点列表中是否包含有该站点
+                        switch (stationObject.getStationTypes()) {
+                            case LIGHT:
+                                syncLight(myLights, stationObject);
                                 break;
-                            }
+                            case REMOTER:
+                                syncRemoter(myRemoters, stationObject);
+                                break;
+                            case SWITCH:
+                                break;
+                            default:
+                                break;
                         }
-                        if (delete) {
-                            List<LightGroup> lightGroups = light.lightGroups();
-                            for(LightGroup lightGroup : lightGroups) {
-                                lightGroup.delete();
-                            }
 
-                            List<LightScene> lightScenes = light.lightScenes();
-                            for(LightScene lightScene : lightScenes) {
-                                lightScene.delete();
-                            }
-                            light.delete();
-                        }
-                    }
-                    //判断新增
-                    if (myLights.size() == 0) {
-                        for (StationObject stationObject : gateAllLights) {
-                            Light newLight = new Light();
-                            newLight.lightID = stationObject.getId() + "";
-                            newLight.name = "[" + stationObject.getMac() + "]";
-                            newLight.lightMac = stationObject.getMac();
-                            //新增的灯加入到未分组 组中
-                            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
-                            LightGroup lightGroup = new LightGroup();
-                            lightGroup.light = newLight;
-                            lightGroup.subgroup = ungroup;
-                            newLight.save();
-                            lightGroup.save();
-                        }
-                    } else {
-                        for (StationObject stationObject : gateAllLights) {
-                            boolean add = true;
-
-                            for (int j = 0; j < myLights.size(); j++) {
-
-                                Light light = myLights.get(j);
-                                if (light.lightMac.equals(stationObject.getMac())) {
-                                    //已存在 不用新增
-                                    add = false;
-                                    break;
-                                }
-                            }
-
-                            if (add) {
-                                //新增
-                                Light newLight = new Light();
-                                newLight.lightID = stationObject.getId() + "";
-                                newLight.name = "[" + stationObject.getMac() + "]";
-                                //新增的灯加入到未分组 组中
-                                SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
-                                LightGroup lightGroup = new LightGroup();
-                                lightGroup.light = newLight;
-                                lightGroup.subgroup = ungroup;
-                                newLight.save();
-                                lightGroup.save();
-                            }
-                        }
                     }
 
                 } else {
@@ -238,6 +193,63 @@ public class MainActivity extends ActionBarActivity {
         Log.i(TAG, "启动周期同步服务");
         //各个站点状态
     }
+
+    private void syncLight(List<Light> allLights, StationObject light) {
+        boolean add = true;
+        for (Light dbLight : allLights) {
+
+            if (dbLight.lightMac.equals(light.getMac())) {
+                //已存在 不用新增 但ID可能发生变化，需要进行更新
+                if (!dbLight.lightID.equals(light.getId() + "") ) {
+                    dbLight.lightID = light.getId() + "";
+                    dbLight.save();
+                }
+                add = false;
+                break;
+            }
+        }
+
+        if (add) {
+            //新加灯
+            Light newLight = new Light();
+            newLight.lightID = light.getId() + "";
+            newLight.name = "[" + light.getMac() + "]";
+            newLight.lightMac = light.getMac();
+            //新增的灯加入到未分组 组中
+            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
+            LightGroup lightGroup = new LightGroup();
+            lightGroup.light = newLight;
+            lightGroup.subgroup = ungroup;
+            newLight.save();
+            lightGroup.save();
+        }
+    }
+
+    private void syncRemoter(List<Remoter> allRemoters, StationObject remoter) {
+        boolean add = true;
+        for (Remoter dbRemoter : allRemoters) {
+
+            if (dbRemoter.remoterMac.equals(remoter.getMac())) {
+                //已存在 不用新增 但ID可能发生变化，需要进行更新
+                if (!dbRemoter.remoterID.equals(remoter.getId() + "") ) {
+                    dbRemoter.remoterID = remoter.getId() + "";
+                    dbRemoter.save();
+                }
+                add = false;
+                break;
+            }
+        }
+
+        if (add) {
+            //新加遥控器
+            Remoter newRemoter = new Remoter();
+            newRemoter.remoterID = remoter.getId() + "";
+            newRemoter.name = "[" + remoter.getMac() + "]";
+            newRemoter.remoterMac = remoter.getMac();
+            newRemoter.save();
+        }
+    }
+
     private void setLeftDrawer(Bundle savedInstanceState) {
         leftItems = getResources().getStringArray(R.array.left_nav_items);
         drawerLayout = (DrawerLayout)findViewById(R.id.main_drawer_layout);
@@ -311,7 +323,7 @@ public class MainActivity extends ActionBarActivity {
                 break;
             case 3:
                 //遥控配置
-                this.currentFragment = RemoterFragment.newInstance("遥控", "test");
+                this.currentFragment = RemoterFragment.newInstance();
                 break;
             case 4:
                 //打开设置
@@ -439,15 +451,18 @@ public class MainActivity extends ActionBarActivity {
             switch (this.currentSelectFrag) {
                 case 0:
                     //场景
-                    menu.findItem(R.id.action_frag_main_add).setVisible(true);
+                    menu.findItem(R.id.action_frag_main_add).setVisible(false);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_rmv).setVisible(false);
                     break;
                 case 1:
                     //灯列表
                     menu.findItem(R.id.action_frag_main_add).setVisible(true);
+                    menu.findItem(R.id.action_frag_main_rmv).setVisible(true);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
                     break;
                 default:
+                    menu.findItem(R.id.action_frag_main_rmv).setVisible(false);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
                     menu.findItem(R.id.action_frag_main_add).setVisible(false);
                     break;
@@ -487,6 +502,10 @@ public class MainActivity extends ActionBarActivity {
                         break;
                 }
 
+                break;
+            case R.id.action_frag_main_rmv:
+                //删除分组
+                ((LightFragment)this.currentFragment).deleteGroup();
                 break;
             default:
                 return super.onOptionsItemSelected(item);

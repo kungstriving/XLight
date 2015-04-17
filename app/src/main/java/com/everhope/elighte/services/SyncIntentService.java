@@ -82,7 +82,6 @@ public class SyncIntentService extends IntentService {
         //最多一次遥信30个站点
         int maxSignalStationCount = 30;
 
-
         //获取要更新的站点id
         List<Light> lightList = Light.getAll();
         List<Short> shortIDs = new ArrayList<>();

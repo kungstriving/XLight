@@ -3,6 +3,7 @@ package com.everhope.elighte.helpers;
 import android.util.Log;
 
 import com.everhope.elighte.activities.DeleteDevicesActivity;
+import com.everhope.elighte.models.BindStationsToRemoterMsg;
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.ClientLoginMsgResponse;
 import com.everhope.elighte.models.CommonMsgResponse;
@@ -16,6 +17,7 @@ import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.GetStationsStatusMsg;
 import com.everhope.elighte.models.GetStationsStatusMsgResponse;
 import com.everhope.elighte.models.MultiStationBrightControlMsg;
+import com.everhope.elighte.models.MultiStationColorControlMsg;
 import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
@@ -40,6 +42,27 @@ public class MessageUtils {
     public static short messageSign = 0;
 
     ////////////////////////////////////// 消息生成与解析 /////////////////////////////
+
+    public static BindStationsToRemoterMsg composeBindStationsToRemoterMsg(short remoterID, byte controlNum, short[] opIDs) {
+        BindStationsToRemoterMsg bindStationsToRemoterMsg = new BindStationsToRemoterMsg();
+        bindStationsToRemoterMsg.setObjectID(remoterID);
+        bindStationsToRemoterMsg.setControlNum(controlNum);
+        bindStationsToRemoterMsg.setOpIDs(opIDs);
+
+        bindStationsToRemoterMsg.buildUp();
+
+        return  bindStationsToRemoterMsg;
+    }
+
+    public static MultiStationColorControlMsg composeMultiStationColorControlMsg(short[] ids, int[] colors) {
+        MultiStationColorControlMsg multiStationColorControlMsg = new MultiStationColorControlMsg();
+        multiStationColorControlMsg.setOpIDs(ids);
+        multiStationColorControlMsg.setColorArr(colors);
+
+        multiStationColorControlMsg.buildUp();
+
+        return multiStationColorControlMsg;
+    }
 
     /**
      * 组织生成 退出站点识别 消息
@@ -138,8 +161,8 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
      * @param count
      * @return
      */
-    public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count) throws Exception {
-        ClientLoginMsgResponse clientLoginMsgResponse = new ClientLoginMsgResponse(data);
+    public static ClientLoginMsgResponse decomposeLogonReturnMsg(byte[] data, int count, short idShould) throws Exception {
+        ClientLoginMsgResponse clientLoginMsgResponse = new ClientLoginMsgResponse(data, idShould);
         return clientLoginMsgResponse;
     }
 
@@ -236,6 +259,11 @@ fe fe fe 7e 22 00 00 00 00 00 00 80 00 00 00 00 48 6f 6d 65 20 67 61 74 65 77 61
         GetAllLightsStatusMsg getAllLightsStatusMsg = new GetAllLightsStatusMsg();
         getAllLightsStatusMsg.buildUp();
         return getAllLightsStatusMsg;
+    }
+
+    public static CommonMsgResponse decomposeCommonMsgResponse(byte[] data, int length, short idShould) throws Exception {
+        CommonMsgResponse commonMsgResponse = new CommonMsgResponse(data, idShould);
+        return commonMsgResponse;
     }
 
     public static CommonMsgResponse decomposeMultiStationBrightControlResponse(byte[] data,int length,short idShould) throws Exception {

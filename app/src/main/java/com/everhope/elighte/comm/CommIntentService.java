@@ -11,12 +11,14 @@ import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
+import com.everhope.elighte.models.BindStationsToRemoterMsg;
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.DeleteStationMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.ExitStationIdentifyMsg;
 import com.everhope.elighte.models.GetAllStationsMsg;
 import com.everhope.elighte.models.MultiStationBrightControlMsg;
+import com.everhope.elighte.models.MultiStationColorControlMsg;
 import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
@@ -83,6 +85,10 @@ public class CommIntentService extends IntentService {
 
     private static final String ACTION_DELETE_STATION = "action.delete.station";
 
+    private static final String ACTION_SEND_SCENE_CONTROL = "action.send.scene.control";
+
+    private static final String ACTION_BIND_STATIONS_REMOTER = "action.bind.stations.remoter";
+
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
      * 消息接收器
@@ -126,9 +132,37 @@ public class CommIntentService extends IntentService {
 
     private static final String EXTRA_MULTI_STATION_BRIGHT = "com.everhope.xlight.comm.extra.multi.station.bright";
 
+    private static final String EXTRA_MULTI_STATION_COLORS = "extra.multi.station.colors";
+
     private static final String EXTRA_SEARCH_LAST_SECONDS = "extra.search.last.seconds";
 
+    private static final String EXTRA_REMOTER_ID = "extra.remoter.id";
+    private static final String EXTRA_BIND_STATION_REMOTER_NUM = "extra.bind.station.remoter.num";
+
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
+
+    public static void startActionBindStationToRemoter(Context context, short remoterID, byte controlNum, short[] ids, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_BIND_STATIONS_REMOTER);
+
+        intent.putExtra(EXTRA_REMOTER_ID,remoterID);
+        intent.putExtra(EXTRA_BIND_STATION_REMOTER_NUM,controlNum);
+        intent.putExtra(EXTRA_MULTI_STATIONS_IDS, ids);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
+
+    public static void startActionSendSceneControlCmd(Context context, short[] stationIDs, int[] colors, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_SEND_SCENE_CONTROL);
+
+        intent.putExtra(EXTRA_MULTI_STATIONS_IDS, stationIDs);
+        intent.putExtra(EXTRA_MULTI_STATION_COLORS, colors);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
 
     /**
      * 启动设置站点颜色活动
@@ -327,6 +361,13 @@ public class CommIntentService extends IntentService {
         if (intent != null) {
             final String action = intent.getAction();
             switch (action) {
+                case ACTION_SEND_SCENE_CONTROL:
+                    //发送场景控制命令
+                    short[] ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
+                    int[] colors = intent.getIntArrayExtra(EXTRA_MULTI_STATION_COLORS);
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionSendSceneControl(ids, colors, receiver);
+                    break;
                 case ACTION_SET_STATION_COLOR:
                     //设置场景中站点颜色
                     short stationIDSetClr = intent.getShortExtra(EXTRA_STATION_ID, (short)0);
@@ -336,7 +377,7 @@ public class CommIntentService extends IntentService {
                     break;
                 case ACTION_SET_MULTI_STATION_BRIGHT:
                     //设置场景中的整体亮度
-                    short[] ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
+                    ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
                     byte[] brightBytesArr = intent.getByteArrayExtra(EXTRA_MULTI_STATION_BRIGHT);
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     handleActionSetMultiStationsBright(ids,brightBytesArr, receiver);
@@ -399,6 +440,13 @@ public class CommIntentService extends IntentService {
                     short stationIDToDelete = intent.getShortExtra(EXTRA_STATION_ID, (short)0);
                     handleActionDeleteStation(stationIDToDelete, receiver);
                     break;
+                case ACTION_BIND_STATIONS_REMOTER:
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    short remoterID = intent.getShortExtra(EXTRA_REMOTER_ID,(short)0);
+                    byte controlNum = intent.getByteExtra(EXTRA_BIND_STATION_REMOTER_NUM, (byte)0);
+                    ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
+                    handleActionBindStationToRemoter(remoterID, controlNum, ids, receiver);
+                    break;
                 default:
                     break;
             }
@@ -407,6 +455,84 @@ public class CommIntentService extends IntentService {
     }
 
     /////////////////////////////// 服务处理 ///////////////////////////////////
+
+    private void handleActionBindStationToRemoter(short remID, byte controlNum,short[] ids, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        BindStationsToRemoterMsg bindStationsToRemoterMsg = MessageUtils.composeBindStationsToRemoterMsg(remID,controlNum,ids);
+
+        Log.d(TAG, String.format("绑定站点到遥控器-消息[%s]", bindStationsToRemoterMsg.toString()));
+
+        byte[] bytes = bindStationsToRemoterMsg.toMessageByteArray();
+        short msgID = bindStationsToRemoterMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
+    private void handleActionSendSceneControl(short[] ids, int[] colors, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        MultiStationColorControlMsg multiStationColorControlMsg = MessageUtils.composeMultiStationColorControlMsg(ids, colors);
+
+        Log.d(TAG, String.format("多站点控制-消息[%s]", multiStationColorControlMsg.toString()));
+
+        byte[] bytes = multiStationColorControlMsg.toMessageByteArray();
+        short msgID = multiStationColorControlMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
 
     private void handleActionDeleteStation(short id, ResultReceiver receiver) {
         int resultCode = 0;
@@ -508,6 +634,9 @@ public class CommIntentService extends IntentService {
         short msgID = multiStationBrightControlMsg.getMessageID();
 
         try {
+
+            is.skip(is.available());
+
             os.write(bytes);
             os.flush();
 
@@ -632,6 +761,9 @@ public class CommIntentService extends IntentService {
         short msgID = enterStationIdMsg.getMessageID();
 
         try {
+            //清空管道
+            is.skip(is.available());
+
             os.write(bytes);
             os.flush();
 
@@ -662,7 +794,7 @@ public class CommIntentService extends IntentService {
 
         GetAllStationsMsg getAllLightsMsg = MessageUtils.composeGetAllStationsMsg();
 
-        Log.i(TAG, String.format("获取所有灯列表消息[%s]", getAllLightsMsg.toString()));
+        Log.i(TAG, String.format("获取所有设备列表消息[%s]", getAllLightsMsg.toString()));
 //        Log.i(TAG, String.format("获取所有灯列表消息字节数组[%s]", Hex.encodeHexString(getAllLightsMsg.toMessageByteArray())));
 
         byte[] bytes = getAllLightsMsg.toMessageByteArray();
@@ -670,6 +802,8 @@ public class CommIntentService extends IntentService {
 
         for(int i = 0; i < Constants.SYSTEM_SETTINGS.SEND_RETRY_TIMES; i++) {
             try {
+                //clear tunnel
+                is.skip(is.available());
                 os.write(bytes);
                 os.flush();
 

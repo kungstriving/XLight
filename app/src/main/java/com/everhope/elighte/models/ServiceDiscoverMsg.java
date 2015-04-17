@@ -40,7 +40,7 @@ public class ServiceDiscoverMsg extends Message{
         //报文序号
         short messageID = byteBuffer.getShort();
         setMessageID(messageID);
-        if (messageSign != MessageUtils.messageSign || messageID != idShould) {
+        if (messageID != idShould) {
             Log.w(TAG, String.format("收到消息特征码[%s] 发送消息特征码[%s] 收到消息ID[%s] 发送消息ID[%s]",
                     messageSign + "",
                     MessageUtils.messageSign + "",

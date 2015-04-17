@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.everhope.elighte.activities.RemoterGroupActivity">
+
+    <item android:id="@+id/action_add_light_to_remoter"
+        android:title="添加"
+        android:icon="@drawable/ic_action_new"
+        android:orderInCategory="100" app:showAsAction="ifRoom" />
+    <item android:id="@+id/action_remote_light_from_remoter"
+        android:title="移除"
+        android:icon="@drawable/ic_action_discard"
+        app:showAsAction="ifRoom"/>
+</menu>

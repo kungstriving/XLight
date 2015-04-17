@@ -1,5 +1,7 @@
 package com.everhope.elighte.models;
 
+import android.util.Log;
+
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 
@@ -15,6 +17,8 @@ import java.nio.ByteOrder;
  */
 public class ClientLoginMsgResponse extends Message{
 
+    private static final String TAG = "ClientLoginMsgResponse@Light";
+    
     public static short RETURN_CODE_OK = 0x0000;
     public static short RETURN_CODE_USERNAME_NOEXIST = 0x1000;
     public static short RETURN_CODE_PWD_WRONG = 0x1001;
@@ -35,7 +39,7 @@ public class ClientLoginMsgResponse extends Message{
     private String gatePhysicalAddr;
     private String gateDesc;
 
-    public ClientLoginMsgResponse(byte[] bytes) throws Exception{
+    public ClientLoginMsgResponse(byte[] bytes, short idShould) throws Exception{
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -49,12 +53,20 @@ public class ClientLoginMsgResponse extends Message{
         //消息特征码
         short messageSign = byteBuffer.getShort();
         setMessageSignature(messageSign);
-        if (messageSign != MessageUtils.messageSign) {
-            throw new Exception("Message sign not match");
-        }
+
         //报文序号
         short messageID = byteBuffer.getShort();
         setMessageID(messageID);
+
+        if (idShould != messageID) {
+            Log.w(TAG, String.format("收到消息特征码[%s] 发送消息特征码[%s] 收到消息ID[%s] 发送消息ID[%s]",
+                    messageSign + "",
+                    MessageUtils.messageSign + "",
+                    messageID + "",
+                    idShould + ""));
+            throw new Exception("Message id or sign not match");
+        }
+
         //报文属性域
         short props = byteBuffer.getShort();
         setPropertiesRegion(props);

@@ -1,6 +1,7 @@
 package com.everhope.elighte.activities;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -19,6 +20,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -58,6 +60,7 @@ public class LightListActivity extends ActionBarActivity {
     private List<Light> lights;
     private SubGroup subGroup;
     private Handler handler;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,14 +87,22 @@ public class LightListActivity extends ActionBarActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, final View view, int position, long id) {
+                progressDialog = ProgressDialog.show(LightListActivity.this, Constants.SYSTEM_SETTINGS.ELIGHTE,"",true);
+                progressDialog.setCancelable(true);
                 //进入站点识别状态
                 final Light light = subGroupLightsListViewAdapter.getItem(position);
+                if (light.lostConnection) {
+                    Toast.makeText(LightListActivity.this, "该灯当前不可用",Toast.LENGTH_LONG).show();
+                    progressDialog.dismiss();
+                    return;
+                }
                 String lightID = light.lightID;
 
                 DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
                 dataAgent.enterStationIdentify(LightListActivity.this, new ResultReceiver(new Handler()) {
                     @Override
                     protected void onReceiveResult(int resultCode, Bundle resultData) {
+                        progressDialog.dismiss();
                         if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
                             //读到了回应消息
                             byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
@@ -272,11 +283,23 @@ public class LightListActivity extends ActionBarActivity {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.light_item, parent, false);
+
+                Light light = getItem(position);
+                TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
+                textView.setText(light.name);
+                if (light.lostConnection) {
+                    ImageView imageView = (ImageView)convertView.findViewById(R.id.light_status_iv);
+                    imageView.setImageResource(R.drawable.offline);
+                }
             }
 
-            Light light = getItem(position);
-            TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
-            textView.setText(light.name);
+//            Light light = getItem(position);
+//            TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
+//            textView.setText(light.name);
+//            if (light.lostConnection) {
+//                ImageView imageView = (ImageView)convertView.findViewById(R.id.light_status_iv);
+//                imageView.setImageResource(R.drawable.offline);
+//            }
             return convertView;
         }
     }

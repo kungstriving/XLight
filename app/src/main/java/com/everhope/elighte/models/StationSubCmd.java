@@ -2,6 +2,8 @@ package com.everhope.elighte.models;
 
 import com.everhope.elighte.constants.FunctionCodes;
 
+import java.nio.ByteBuffer;
+
 /**
  * 子命令对象
  * Created by kongxiaoyang on 2015/3/21.
@@ -22,8 +24,16 @@ public class StationSubCmd {
 
         //获取子命令类型
         byte subCmdType = bytes[0];
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         FunctionCodes.SubFunctionCodes subFunctionCode = FunctionCodes.SubFunctionCodes.fromSubFunctionCodeByte(subCmdType);
         switch (subFunctionCode) {
+
+            case COLOR_TURN:
+                StationColorTurnCmd stationColorTurnCmd = new StationColorTurnCmd();
+                stationColorTurnCmd.setH(bytes[1]);
+                stationColorTurnCmd.setS(bytes[2]);
+                stationColorTurnCmd.setB(bytes[3]);
+                return stationColorTurnCmd;
             case DEVICE_STATUS:
                 StationDeviceStatusCmd stationDeviceStatusCmd = new StationDeviceStatusCmd();
                 stationDeviceStatusCmd.setFlags(bytes[3]);
@@ -40,13 +50,21 @@ public class StationSubCmd {
                 StationBrightTurnCmd stationBrightTurnCmd = new StationBrightTurnCmd();
                 stationBrightTurnCmd.setBrightValue(bytes[3]);
                 return stationBrightTurnCmd;
+            case BIND_REMOTER:
+                BindStationToRemoterCmd bindStationToRemoterCmd = new BindStationToRemoterCmd();
 
-            case COLOR_TURN:
-                StationColorTurnCmd stationColorTurnCmd = new StationColorTurnCmd();
-                stationColorTurnCmd.setH(bytes[1]);
-                stationColorTurnCmd.setS(bytes[2]);
-                stationColorTurnCmd.setB(bytes[3]);
-                return stationColorTurnCmd;
+                byteBuffer.get();
+                bindStationToRemoterCmd.setControlNum(byteBuffer.get());
+                bindStationToRemoterCmd.setStationID(byteBuffer.getShort());
+
+                return bindStationToRemoterCmd;
+            case UNBIND_REMOTER:
+                UnBindStationToRemoterCmd unBindStationToRemoterCmd = new UnBindStationToRemoterCmd();
+                byteBuffer.get();
+                unBindStationToRemoterCmd.setControlNum(byteBuffer.get());
+                unBindStationToRemoterCmd.setStationID(byteBuffer.getShort());
+                return unBindStationToRemoterCmd;
+
             case WRONG_CODE:
                 return null;
             default:
