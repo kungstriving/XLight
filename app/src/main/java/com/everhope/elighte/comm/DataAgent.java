@@ -46,6 +46,10 @@ public class DataAgent {
         CommIntentService.startActionBindStationToRemoter(context,remoterID,controlNum,stationIDs,receiver);
     }
 
+    public void unbindStationFromRemoter(Context context, short remoterID, byte controlNum, short[] stationIDs, ResultReceiver receiver) {
+        CommIntentService.startActionUnBindStationFromRemoter(context, remoterID, controlNum, stationIDs, receiver);
+    }
+
     public void sendSceneControlCmd(Context context, short[] stationIDs, int[] colors, ResultReceiver receiver) {
         CommIntentService.startActionSendSceneControlCmd(context, stationIDs, colors, receiver);
     }
@@ -188,6 +192,9 @@ public class DataAgent {
             } catch (IOException e) {
                 //连接报错 记录log
                 Log.w(TAG, e.getMessage());
+                if (i == Constants.SYSTEM_SETTINGS.CONNECT_RETRY_TIMES - 1) {
+                    throw new IOException("connect to gate failed");
+                }
                 try {
                     Thread.sleep(Constants.SYSTEM_SETTINGS.CONNECT_RETRY_INTERVAL_MS);
                 } catch (InterruptedException e1) {

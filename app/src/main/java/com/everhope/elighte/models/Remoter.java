@@ -43,7 +43,7 @@ public class Remoter extends Model {
     @Column(name="LOST_CONNECTION")
     public boolean lostConnection = false;
 
-    public List<Light> lightRemoters(String groupNum) {
+    public List<Light> groupLights(String groupNum) {
 
         List<Light> lights = new ArrayList<>();
         List<LightRemoter> lightRemoters = getMany(LightRemoter.class, "REMOTER");
@@ -54,6 +54,19 @@ public class Remoter extends Model {
             }
         }
         return lights;
+    }
+
+    public List<LightRemoter> groupLightRemoters(String groupNum) {
+        List<LightRemoter> lightRemoterList = new ArrayList<>();
+        List<LightRemoter> lightRemoters = getMany(LightRemoter.class, "REMOTER");
+
+        for (LightRemoter lightRemoter : lightRemoters) {
+            if (lightRemoter.groupName.equals(groupNum)) {
+                lightRemoterList.add(lightRemoter);
+            }
+        }
+
+        return lightRemoterList;
     }
 
     public static Remoter getRemoterByID(String id) {

@@ -11,6 +11,7 @@
         android:layout_height="24dp"
         android:layout_margin="5dp"
         android:layout_gravity="center_vertical"
+        android:layout_weight="1"
         android:src="@drawable/light_icon"/>
     <TextView
         android:id="@+id/light_name_tv"
@@ -21,5 +22,13 @@
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
         android:textColor="#fff"
+        android:layout_weight="8"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_margin="5dp"
+        android:layout_gravity="center_vertical"
+        android:id="@+id/select_light_item_cb" />
 </LinearLayout>

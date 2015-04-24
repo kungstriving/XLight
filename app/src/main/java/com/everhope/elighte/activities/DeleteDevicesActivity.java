@@ -18,6 +18,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,6 +48,7 @@ public class DeleteDevicesActivity extends ActionBarActivity {
     private static final String TAG = "DeleteDevicesActivity@Light";
 
     private ProgressDialog progressDialog;
+    private ListView lightListView;
     private ChooseLightsListViewAdapter chooseLightsListViewAdapter;
 
     @Override
@@ -64,24 +67,24 @@ public class DeleteDevicesActivity extends ActionBarActivity {
             lights.add(lightGroup.light);
         }
 
-        final ListView lightListView = (ListView)findViewById(R.id.delete_lights_lv);
+        lightListView = (ListView)findViewById(R.id.delete_lights_lv);
         lightListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         chooseLightsListViewAdapter = new ChooseLightsListViewAdapter(DeleteDevicesActivity.this, lights);
         chooseLightsListViewAdapter.setNotifyOnChange(true);
         lightListView.setAdapter(chooseLightsListViewAdapter);
 
-        lightListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                boolean selected = lightListView.isItemChecked(position);
-                lightListView.setItemChecked(position, selected);
-                if (selected) {
-                    view.setBackgroundColor(getResources().getColor(R.color.goldenrod));
-                } else {
-                    view.setBackgroundColor(getResources().getColor(R.color.whitesmoke));
-                }
-            }
-        });
+//        lightListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//            @Override
+//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//                boolean selected = lightListView.isItemChecked(position);
+//                lightListView.setItemChecked(position, selected);
+//                if (selected) {
+//                    view.setBackgroundColor(getResources().getColor(R.color.goldenrod));
+//                } else {
+//                    view.setBackgroundColor(getResources().getColor(R.color.whitesmoke));
+//                }
+//            }
+//        });
 
         setTitle("请选择要删除的灯");
 
@@ -95,7 +98,7 @@ public class DeleteDevicesActivity extends ActionBarActivity {
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.choose_light_item, parent, false);
             }
@@ -103,6 +106,14 @@ public class DeleteDevicesActivity extends ActionBarActivity {
             Light light = getItem(position);
             TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
             textView.setText(light.name);
+
+            CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_cb);
+            checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    lightListView.setItemChecked(position,isChecked);
+                }
+            });
             return convertView;
         }
     }

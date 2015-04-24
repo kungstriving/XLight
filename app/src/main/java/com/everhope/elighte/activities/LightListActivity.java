@@ -11,6 +11,7 @@ import android.os.ResultReceiver;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,6 +20,8 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -35,6 +38,7 @@ import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
+import com.everhope.elighte.models.LightRemoter;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.SubGroup;
 
@@ -61,6 +65,7 @@ public class LightListActivity extends ActionBarActivity {
     private SubGroup subGroup;
     private Handler handler;
     private ProgressDialog progressDialog;
+    private ListView listView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,12 +82,12 @@ public class LightListActivity extends ActionBarActivity {
         for(LightGroup lightGroup : lightGroupList) {
             lights.add(lightGroup.light);
         }
-        ListView listView = (ListView)findViewById(R.id.subgroup_lights_lv);
+        listView = (ListView)findViewById(R.id.subgroup_lights_lv);
         final SubGroupLightsListViewAdapter subGroupLightsListViewAdapter =
-                new SubGroupLightsListViewAdapter(LightListActivity.this, lights);
+                new SubGroupLightsListViewAdapter(LightListActivity.this, lightGroupList);
         subGroupLightsListViewAdapter.setNotifyOnChange(true);
         listView.setAdapter(subGroupLightsListViewAdapter);
-
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         //设置列表点击事件
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -90,14 +95,14 @@ public class LightListActivity extends ActionBarActivity {
                 progressDialog = ProgressDialog.show(LightListActivity.this, Constants.SYSTEM_SETTINGS.ELIGHTE,"",true);
                 progressDialog.setCancelable(true);
                 //进入站点识别状态
-                final Light light = subGroupLightsListViewAdapter.getItem(position);
-                if (light.lostConnection) {
+                final LightGroup lightGroup = subGroupLightsListViewAdapter.getItem(position);
+                if (lightGroup.light.lostConnection) {
                     Toast.makeText(LightListActivity.this, "该灯当前不可用",Toast.LENGTH_LONG).show();
                     progressDialog.dismiss();
                     return;
                 }
-                String lightID = light.lightID;
-
+                String lightID = lightGroup.light.lightID;
+                final Light light = lightGroup.light;
                 DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
                 dataAgent.enterStationIdentify(LightListActivity.this, new ResultReceiver(new Handler()) {
                     @Override
@@ -160,7 +165,7 @@ public class LightListActivity extends ActionBarActivity {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case ADD_LIGHT_TO_LIST:
-                        Light tmpLight = (Light)msg.obj;
+                        LightGroup tmpLight = (LightGroup)msg.obj;
                         subGroupLightsListViewAdapter.add(tmpLight);
                         subGroupLightsListViewAdapter.notifyDataSetChanged();
                         break;
@@ -274,32 +279,32 @@ public class LightListActivity extends ActionBarActivity {
         }
     }
 
-    class SubGroupLightsListViewAdapter extends ArrayAdapter<Light> {
-        public SubGroupLightsListViewAdapter(Context context, List<Light> lights) {
+    class SubGroupLightsListViewAdapter extends ArrayAdapter<LightGroup> {
+        public SubGroupLightsListViewAdapter(Context context, List<LightGroup> lights) {
             super(context, 0, lights);
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.light_item, parent, false);
 
-                Light light = getItem(position);
+                LightGroup lightGroup = getItem(position);
                 TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
-                textView.setText(light.name);
-                if (light.lostConnection) {
+                textView.setText(lightGroup.light.name);
+                if (lightGroup.light.lostConnection) {
                     ImageView imageView = (ImageView)convertView.findViewById(R.id.light_status_iv);
                     imageView.setImageResource(R.drawable.offline);
                 }
-            }
 
-//            Light light = getItem(position);
-//            TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
-//            textView.setText(light.name);
-//            if (light.lostConnection) {
-//                ImageView imageView = (ImageView)convertView.findViewById(R.id.light_status_iv);
-//                imageView.setImageResource(R.drawable.offline);
-//            }
+                CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_item_cb);
+                checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        listView.setItemChecked(position,isChecked);
+                    }
+                });
+            }
             return convertView;
         }
     }
@@ -331,7 +336,7 @@ public class LightListActivity extends ActionBarActivity {
                 //
                 Message message = new Message();
                 message.what = ADD_LIGHT_TO_LIST;
-                message.obj = newLight;
+                message.obj = newLightGroup;
                 handler.sendMessage(message);
             }
         }
@@ -355,6 +360,29 @@ public class LightListActivity extends ActionBarActivity {
                 //默认从所有灯分组选取
                 intent.putExtra("subgroup_id",1);
                 startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
+                return true;
+            case R.id.action_remove_light_from_group:
+                //删除灯
+                ListView listView = (ListView)findViewById(R.id.subgroup_lights_lv);
+                SubGroupLightsListViewAdapter lightAdapter = (SubGroupLightsListViewAdapter)listView.getAdapter();
+                SparseBooleanArray checked = listView.getCheckedItemPositions();
+//                String[] selectedIDs = new String[checked.size()];
+//                List<LightGroup> lightsRemove = new ArrayList<>();
+//                int arrCount = 0;
+                int length = listView.getCount();
+                for(int i = 0;i< length; i++) {
+                    if (checked.get(i)) {
+                        //该项被选中
+                        LightGroup lightGroup = lightAdapter.getItem(i);
+                        lightAdapter.remove(lightGroup);
+                        lightAdapter.notifyDataSetChanged();
+
+                        lightGroup.delete();
+//                        selectedIDs[arrCount] = lightGroup.light.lightID;
+//                        lightsRemove.add(lightGroup);
+//                        arrCount++;
+                    }
+                }
                 return true;
             case android.R.id.home:
                 //按压actionbar中的回退按钮

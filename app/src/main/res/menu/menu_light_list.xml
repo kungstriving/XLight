@@ -6,4 +6,8 @@
         android:icon="@drawable/ic_action_new"
         android:title="添加灯"
         android:orderInCategory="100" app:showAsAction="ifRoom" />
+    <item android:id="@+id/action_remove_light_from_group"
+        android:title="移除"
+        android:icon="@drawable/ic_action_discard"
+        app:showAsAction="ifRoom"/>
 </menu>

@@ -2,22 +2,21 @@ package com.everhope.elighte.models;
 
 import com.everhope.elighte.constants.FunctionCodes;
 import com.everhope.elighte.constants.MessageObjectTypes;
-import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
- * 绑定站点到遥控器消息
- * Created by kongxiaoyang on 2015/4/16.
+ * 解绑定站点
+ * Created by kongxiaoyang on 2015/4/18.
  */
-public class BindStationsToRemoterMsg extends Message {
+public class UnBindStationsFromRemoterMsg extends Message {
 
     private byte controlNum;
     private short[] opIDs;
 
-    public BindStationsToRemoterMsg() {}
+    public UnBindStationsFromRemoterMsg() {}
 
     @Override
     public void buildUp() {
@@ -45,7 +44,7 @@ public class BindStationsToRemoterMsg extends Message {
         for (int i = 0; i < stationCount; i++) {
             //设置绑定站点子命令
             byte[] subCmdBytes = new byte[4];
-            subCmdBytes[0] = FunctionCodes.SubFunctionCodes.BIND_REMOTER.getFuncCode();
+            subCmdBytes[0] = FunctionCodes.SubFunctionCodes.UNBIND_REMOTER.getFuncCode();
             subCmdBytes[1] = controlNum;
             ByteBuffer buffer = ByteBuffer.allocate(2);
             buffer.putShort(opIDs[i]);
@@ -65,6 +64,7 @@ public class BindStationsToRemoterMsg extends Message {
         short length = (short)(18 + dataRegionLength);      //18(消息固定长度)+（数据域长度）
         setMessageLength(length);
     }
+
 
     public byte getControlNum() {
         return controlNum;

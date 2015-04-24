@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.util.Log;
+import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +35,7 @@ import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.CommonMsgResponse;
+import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
 import com.everhope.elighte.models.SubGroup;
@@ -85,7 +87,7 @@ public class LightFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_light, container, false);
 
         listView = (ListView)rootView.findViewById(R.id.alllights_lv);
-
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         //添加分组操作事件
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -119,10 +121,6 @@ public class LightFragment extends Fragment {
 
                 //添加场景亮度调节
                 final SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
-//                seekBar.setProgress(scene.brightness);
-
-//                BrightChangeListener brightChangeListener = new BrightChangeListener(scene);
-//                seekBar.setOnSeekBarChangeListener(brightChangeListener);
 
                 //添加设置场景亮度为0的事件
                 layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
@@ -131,9 +129,6 @@ public class LightFragment extends Fragment {
                         seekBar.setProgress(0);
                     }
                 });
-
-                //发送整个场景的设置命令
-//                sendScenePackControl(scene);
 
                 }
         });
@@ -243,62 +238,35 @@ public class LightFragment extends Fragment {
                     listView.setItemChecked(position,isChecked);
                 }
             });
+            if (group.getId() == 1) {
+                //所有分组
+                checkBox.setEnabled(false);
+            }
             return convertView;
         }
     }
 
-//    private void sendScenePackControl(SubGroup group) {
-//        //获取当前场景的所有站点的id和颜色
-//        List<LightGroup> lightGroups = group.lightGroups();
-//        if (lightGroups.size() != 0) {
-//            int length = lightGroups.size();
-//            short[] ids = new short[length];
-//            int[] colors = new int[length];
-//            for(int i = 0; i < length; i++) {
-//                LightGroup lightGroup = lightGroups.get(i);
-//                ids[i] = Short.parseShort(lightGroup.light.lightID);
-//                int r = lightGroup.rColor;
-//                int g = lightScene.gColor;
-//                int b = lightScene.bColor;
-//                colors[i] = Color.rgb(r, g, b);
-//            }
-//
-//            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
-//            dataAgent.sendSceneControlCmd(getActivity(), ids, colors, new ResultReceiver(new Handler()) {
-//                @Override
-//                protected void onReceiveResult(int resultCode, Bundle resultData) {
-//                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
-//                        //读到了回应消息
-//                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
-//                        short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-//                        //解析回应消息
-//                        CommonMsgResponse msgResponse = null;
-//                        try {
-//                            msgResponse = MessageUtils.decomposeCommonMsgResponse(msgBytes,msgBytes.length,idShould);
-//                            Log.i(TAG, String.format("场景控制命令返回-[%s]", msgResponse.toString()));
-//                        } catch (Exception e) {
-//                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-//                            Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
-//                            return;
-//                        }
-//                        //检测操作结果
-//                        if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
-//                            Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
-//                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
-//                            return;
-//                        }
-//                    } else {
-//                        Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
-//                        Log.w(TAG, "错误码 " + resultCode);
-//                    }
-//                }
-//            });
-//        }
-//
-//    }
-
     public void deleteGroup() {
-        Toast.makeText(getActivity(), "toto", Toast.LENGTH_LONG).show();
+        ListView lv = (ListView)getActivity().findViewById(R.id.alllights_lv);
+        LightGroupListAdapter groupListAdapter = (LightGroupListAdapter)lv.getAdapter();
+        int count = lv.getCheckedItemCount();
+        if (count != 0) {
+            SparseBooleanArray checkedItemPositions = lv.getCheckedItemPositions();
+            int length = lv.getCount();
+            for(int i = 0;i< length; i++) {
+                if (checkedItemPositions.get(i)) {
+                    //该项被选中
+                    SubGroup subGroup = groupListAdapter.getItem(i);
+                    List<LightGroup> list = subGroup.lightGroups();
+                    for(LightGroup temp : list) {
+                        temp.delete();
+                    }
+                    groupListAdapter.remove(subGroup);
+                    groupListAdapter.notifyDataSetChanged();
+                    subGroup.delete();
+                }
+            }
+        }
     }
 
     public void addNewGroup(String newGroupName) {

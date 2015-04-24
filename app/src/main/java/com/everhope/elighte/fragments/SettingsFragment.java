@@ -31,6 +31,7 @@ import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
 import com.everhope.elighte.models.LightScene;
+import com.everhope.elighte.models.Remoter;
 import com.everhope.elighte.models.StationObject;
 import com.everhope.elighte.models.SubGroup;
 
@@ -213,68 +214,36 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                     //取出当前数据库表中的所有站点进行比对
                     //新增 或 删除
                     List<Light> myLights = Light.getAll();
-                    StationObject[] gateAllLights = getAllStationsMsgResponse.getStationObjects();
-                    int length = gateAllLights.length;
-                    List<Light> newLights = new ArrayList<Light>();
+                    List<Remoter> myRemoters = Remoter.getAll();
 
-                    //判断新增
-                    if (myLights.size() == 0) {
-                        for (StationObject stationObject : gateAllLights) {
-                            Light newLight = new Light();
-                            newLight.lightID = stationObject.getId() + "";
-                            newLight.name = "[" + stationObject.getMac() + "]";
-                            newLight.lightMac = stationObject.getMac();
-                            //新增的灯加入到未分组 组中
-                            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
-                            LightGroup lightGroup = new LightGroup();
-                            lightGroup.light = newLight;
-                            lightGroup.subgroup = ungroup;
-                            newLight.save();
-                            lightGroup.save();
-
-                            newLights.add(newLight);
+                    StationObject[] gateAllStations = getAllStationsMsgResponse.getStationObjects();
+                    int newStationsCount = 0;
+                    for (StationObject stationObject : gateAllStations) {
+                        boolean added = false;
+                        //遍历当前站点列表中是否包含有该站点
+                        switch (stationObject.getStationTypes()) {
+                            case LIGHT:
+                                added = syncLight(myLights, stationObject);
+                                break;
+                            case REMOTER:
+                                added = syncRemoter(myRemoters, stationObject);
+                                break;
+                            case SWITCH:
+                                break;
+                            default:
+                                break;
                         }
-                    } else {
-                        for (StationObject stationObject : gateAllLights) {
-                            boolean add = true;
-
-                            for (int j = 0; j < myLights.size(); j++) {
-
-                                Light light = myLights.get(j);
-                                if (light.lightMac.equals(stationObject.getMac())) {
-                                    //已存在 不用新增
-                                    add = false;
-                                    light.lightID = stationObject.getId() + "";
-                                    light.save();
-                                    break;
-                                }
-                            }
-
-                            if (add) {
-                                //新增
-                                Light newLight = new Light();
-                                newLight.lightID = stationObject.getId() + "";
-                                newLight.name = "[" + stationObject.getMac() + "]";
-                                newLight.lightMac = stationObject.getMac();
-                                //新增的灯加入到未分组 组中
-                                SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
-                                LightGroup lightGroup = new LightGroup();
-                                lightGroup.light = newLight;
-                                lightGroup.subgroup = ungroup;
-                                newLight.save();
-                                lightGroup.save();
-
-                                newLights.add(newLight);
-                            }
+                        if(added) {
+                            newStationsCount++;
                         }
                     }
 
                     //判断是否有新增灯
-                    if (newLights.size() != 0) {
+                    if (newStationsCount != 0) {
                         //有新增灯
                         Message message = new Message();
                         message.what = HANDLER_GOT_NEWLIGHTS;
-                        message.arg1 = newLights.size();
+                        message.arg1 = newStationsCount;
                         handler.sendMessage(message);
                     } else {
                         //无新增灯
@@ -289,6 +258,66 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                 }
             }
         });
+    }
+
+    private boolean syncLight(List<Light> allLights, StationObject light) {
+        boolean add = true;
+        for (Light dbLight : allLights) {
+
+            if (dbLight.lightMac.equals(light.getMac())) {
+                //已存在 不用新增 但ID可能发生变化，需要进行更新
+                if (!dbLight.lightID.equals(light.getId() + "") ) {
+                    dbLight.lightID = light.getId() + "";
+                    dbLight.save();
+                }
+                add = false;
+                break;
+            }
+        }
+
+        if (add) {
+            //新加灯
+            Light newLight = new Light();
+            newLight.lightID = light.getId() + "";
+            newLight.name = "[" + light.getMac() + "]";
+            newLight.lightMac = light.getMac();
+            //新增的灯加入到未分组 组中
+            SubGroup ungroup = SubGroup.load(SubGroup.class, 1);
+            LightGroup lightGroup = new LightGroup();
+            lightGroup.light = newLight;
+            lightGroup.subgroup = ungroup;
+            newLight.save();
+            lightGroup.save();
+        }
+
+        return add;
+    }
+
+    private boolean syncRemoter(List<Remoter> allRemoters, StationObject remoter) {
+        boolean add = true;
+        for (Remoter dbRemoter : allRemoters) {
+
+            if (dbRemoter.remoterMac.equals(remoter.getMac())) {
+                //已存在 不用新增 但ID可能发生变化，需要进行更新
+                if (!dbRemoter.remoterID.equals(remoter.getId() + "") ) {
+                    dbRemoter.remoterID = remoter.getId() + "";
+                    dbRemoter.save();
+                }
+                add = false;
+                break;
+            }
+        }
+
+        if (add) {
+            //新加遥控器
+            Remoter newRemoter = new Remoter();
+            newRemoter.remoterID = remoter.getId() + "";
+            newRemoter.name = "[" + remoter.getMac() + "]";
+            newRemoter.remoterMac = remoter.getMac();
+            newRemoter.save();
+        }
+
+        return add;
     }
 
     @Override

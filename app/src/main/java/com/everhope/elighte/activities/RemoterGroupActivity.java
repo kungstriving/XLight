@@ -43,6 +43,7 @@ public class RemoterGroupActivity extends ActionBarActivity {
     private Remoter remoter;
     private int groupNum;
     private List<Light> lights;
+    private List<LightRemoter> lightRemoters;
     private ListView lightListView;
     private LightListViewAdapter lightListViewAdapter;
 
@@ -68,17 +69,18 @@ public class RemoterGroupActivity extends ActionBarActivity {
 
     private void setStationsList() {
         Remoter remoter = Remoter.getRemoterByID(remoterID + "");
-        this.lights = remoter.lightRemoters(groupNum + "");
+        this.lights = remoter.groupLights(groupNum + "");
+        this.lightRemoters = remoter.groupLightRemoters(groupNum + "");
 
         lightListView = (ListView)findViewById(R.id.remoter_gp_lights_lv);
         lightListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        lightListViewAdapter = new LightListViewAdapter(RemoterGroupActivity.this, lights);
+        lightListViewAdapter = new LightListViewAdapter(RemoterGroupActivity.this, lightRemoters);
         lightListViewAdapter.setNotifyOnChange(true);
         lightListView.setAdapter(lightListViewAdapter);
     }
 
-    class LightListViewAdapter extends ArrayAdapter<Light> {
-        public LightListViewAdapter(Context context, List<Light> lights) {
+    class LightListViewAdapter extends ArrayAdapter<LightRemoter> {
+        public LightListViewAdapter(Context context, List<LightRemoter> lights) {
             super(context, 0, lights);
         }
 
@@ -88,9 +90,9 @@ public class RemoterGroupActivity extends ActionBarActivity {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.choose_light_item, parent, false);
             }
 //            convertView = LayoutInflater.from(ChooseLightActivity.this).inflate(R.layout.choose_light_item, parent,false);
-            Light light = getItem(position);
+            LightRemoter lightRemoter = getItem(position);
             TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
-            textView.setText(light.name);
+            textView.setText(lightRemoter.light.name);
             CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_cb);
             checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -161,9 +163,10 @@ public class RemoterGroupActivity extends ActionBarActivity {
                             lightRemoter.remoter = remoter;
                             lightRemoter.groupName = groupNum + "";
                             lightRemoter.save();
+                            lightRemoters.add(lightRemoter);
 
                             //add to list
-                            lightListViewAdapter.add(l);
+                            lightListViewAdapter.add(lightRemoter);
                             lightListViewAdapter.notifyDataSetChanged();
                         }
                     } else {
@@ -197,16 +200,19 @@ public class RemoterGroupActivity extends ActionBarActivity {
                 LightListViewAdapter lightAdapter = (LightListViewAdapter)listView.getAdapter();
                 SparseBooleanArray checked = listView.getCheckedItemPositions();
                 String[] selectedIDs = new String[checked.size()];
+                List<LightRemoter> lightsRemove = new ArrayList<>();
                 int arrCount = 0;
                 int length = listView.getCount();
                 for(int i = 0;i< length; i++) {
                     if (checked.get(i)) {
                         //该项被选中
-                        Light light = lightAdapter.getItem(i);
-                        selectedIDs[arrCount] = light.lightID;
+                        LightRemoter lightRemoter = lightAdapter.getItem(i);
+                        selectedIDs[arrCount] = lightRemoter.light.lightID;
+                        lightsRemove.add(lightRemoter);
                         arrCount++;
                     }
                 }
+                unbindLights(selectedIDs, lightsRemove);
                 return true;
             case android.R.id.home:
                 onBackPressed();
@@ -214,5 +220,51 @@ public class RemoterGroupActivity extends ActionBarActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void unbindLights(String[] remIDs, final List<LightRemoter> lightRemotersRemove) {
+        short[] lightsID = new short[remIDs.length];
+        for(int i = 0; i < remIDs.length; i++) {
+            lightsID[i] = Short.parseShort(remIDs[i]);
+        }
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        dataAgent.unbindStationFromRemoter(RemoterGroupActivity.this, remoterID, (byte)groupNum, lightsID, new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                    //读到了回应消息
+                    byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                    short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                    //解析回应消息
+                    CommonMsgResponse msgResponse = null;
+                    try {
+                        msgResponse = MessageUtils.decomposeCommonMsgResponse(msgBytes, msgBytes.length, idShould);
+                    } catch (Exception e) {
+                        Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                        Toast.makeText(RemoterGroupActivity.this, "消息错误", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    //检测操作结果
+                    if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                        Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                        Toast.makeText(RemoterGroupActivity.this, "出错啦", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    //解绑定正确 删除数据库 和当前列表中
+
+                    List<LightRemoter> lightRemoters = new ArrayList<LightRemoter>();
+                    for(LightRemoter l : lightRemotersRemove) {
+
+                        //remove from list
+                        lightListViewAdapter.remove(l);
+                        lightListViewAdapter.notifyDataSetChanged();
+                        l.delete();
+                    }
+                } else {
+                    Toast.makeText(RemoterGroupActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                    Log.w(TAG, "错误码 " + resultCode);
+                }
+            }
+        });
     }
 }

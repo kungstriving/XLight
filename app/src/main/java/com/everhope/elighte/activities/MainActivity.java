@@ -187,8 +187,7 @@ public class MainActivity extends ActionBarActivity {
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         alarm.cancel(pIntent);
 
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), intervalMillis, pIntent);
-
+        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000, intervalMillis, pIntent);
 
         Log.i(TAG, "启动周期同步服务");
         //各个站点状态

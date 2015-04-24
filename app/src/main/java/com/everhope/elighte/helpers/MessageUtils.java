@@ -23,6 +23,7 @@ import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.SetGateNetworkMsgResponse;
 import com.everhope.elighte.models.StationColorControlMsg;
+import com.everhope.elighte.models.UnBindStationsFromRemoterMsg;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -42,6 +43,17 @@ public class MessageUtils {
     public static short messageSign = 0;
 
     ////////////////////////////////////// 消息生成与解析 /////////////////////////////
+
+    public static UnBindStationsFromRemoterMsg composeUnBindStationsFromRemoterMsg(short remoterID, byte controlNum, short[] opIDs) {
+        UnBindStationsFromRemoterMsg unBindStationsFromRemoterMsg = new UnBindStationsFromRemoterMsg();
+        unBindStationsFromRemoterMsg.setObjectID(remoterID);
+        unBindStationsFromRemoterMsg.setControlNum(controlNum);
+        unBindStationsFromRemoterMsg.setOpIDs(opIDs);
+
+        unBindStationsFromRemoterMsg.buildUp();
+
+        return unBindStationsFromRemoterMsg;
+    }
 
     public static BindStationsToRemoterMsg composeBindStationsToRemoterMsg(short remoterID, byte controlNum, short[] opIDs) {
         BindStationsToRemoterMsg bindStationsToRemoterMsg = new BindStationsToRemoterMsg();

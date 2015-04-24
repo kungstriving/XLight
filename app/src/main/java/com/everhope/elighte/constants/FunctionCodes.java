@@ -186,9 +186,9 @@ public class FunctionCodes {
     public static enum SubFunctionCodes {
 
         /**
-         * 设备状态
+         * 设备开关
          */
-        DEVICE_STATUS((byte)-128),
+        DEVICE_SWITCH(Byte.decode("0x01")),
 
         /**
          * 开关设备绑定
@@ -211,11 +211,6 @@ public class FunctionCodes {
         UNBIND_REMOTER(Byte.decode("0x21")),
 
         /**
-         * 设备开关
-         */
-        DEVICE_SWITCH(Byte.decode("0x01")),
-
-        /**
          * 亮度调节
          */
         BRIGHTNESS_TURN(Byte.decode("0x30")),
@@ -224,6 +219,11 @@ public class FunctionCodes {
          * 颜色调节
          */
         COLOR_TURN(Byte.decode("0x31")),
+
+        /**
+         * 设备状态
+         */
+        DEVICE_STATUS((byte)-128),
 
         /**
          * 错误类型

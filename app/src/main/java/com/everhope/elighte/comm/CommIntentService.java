@@ -23,8 +23,8 @@ import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.StationColorControlMsg;
+import com.everhope.elighte.models.UnBindStationsFromRemoterMsg;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
@@ -89,6 +89,8 @@ public class CommIntentService extends IntentService {
 
     private static final String ACTION_BIND_STATIONS_REMOTER = "action.bind.stations.remoter";
 
+    private static final String ACTION_UNBIND_STATIONS_REMOTER = "action.unbind.stations.remoter";
+
     //////////////////////// 传递参数 ///////////////////////////////////////
     /**
      * 消息接收器
@@ -138,8 +140,21 @@ public class CommIntentService extends IntentService {
 
     private static final String EXTRA_REMOTER_ID = "extra.remoter.id";
     private static final String EXTRA_BIND_STATION_REMOTER_NUM = "extra.bind.station.remoter.num";
+    private static final String EXTRA_UNBIND_STATION_REMOTER_NUM = "extra.unbind.station.remoter.num";
 
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
+
+    public static void startActionUnBindStationFromRemoter(Context context, short remoterID, byte controlNum, short[] ids, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_UNBIND_STATIONS_REMOTER);
+
+        intent.putExtra(EXTRA_REMOTER_ID, remoterID);
+        intent.putExtra(EXTRA_UNBIND_STATION_REMOTER_NUM, controlNum);
+        intent.putExtra(EXTRA_MULTI_STATIONS_IDS, ids);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
 
     public static void startActionBindStationToRemoter(Context context, short remoterID, byte controlNum, short[] ids, ResultReceiver receiver) {
         Intent intent = new Intent(context, CommIntentService.class);
@@ -447,6 +462,13 @@ public class CommIntentService extends IntentService {
                     ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
                     handleActionBindStationToRemoter(remoterID, controlNum, ids, receiver);
                     break;
+                case ACTION_UNBIND_STATIONS_REMOTER:
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    remoterID = intent.getShortExtra(EXTRA_REMOTER_ID, (short)0);
+                    controlNum = intent.getByteExtra(EXTRA_UNBIND_STATION_REMOTER_NUM, (byte)0);
+                    ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
+                    handleActionUnbindStationFromRemoter(remoterID, controlNum, ids, receiver);
+                    break;
                 default:
                     break;
             }
@@ -455,6 +477,45 @@ public class CommIntentService extends IntentService {
     }
 
     /////////////////////////////// 服务处理 ///////////////////////////////////
+
+    private void handleActionUnbindStationFromRemoter(short remoterID, byte controlNum, short[] ids, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        UnBindStationsFromRemoterMsg unBindStationsFromRemoterMsg = MessageUtils.composeUnBindStationsFromRemoterMsg(remoterID, controlNum, ids);
+
+        Log.d(TAG, String.format("解绑定站点遥控器-消息[%s]", unBindStationsFromRemoterMsg.toString()));
+
+        byte[] bytes = unBindStationsFromRemoterMsg.toMessageByteArray();
+        short msgID = unBindStationsFromRemoterMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
 
     private void handleActionBindStationToRemoter(short remID, byte controlNum,short[] ids, ResultReceiver receiver) {
         int resultCode = 0;
