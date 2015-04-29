@@ -5,11 +5,12 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.drawable.BitmapDrawable;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ResultReceiver;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
@@ -25,6 +26,8 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.PopupWindow;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,11 +38,8 @@ import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.CommonMsgResponse;
-import com.everhope.elighte.models.GetAllStationsMsgResponse;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
-import com.everhope.elighte.models.LightRemoter;
-import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.SubGroup;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -66,6 +66,7 @@ public class LightListActivity extends ActionBarActivity {
     private Handler handler;
     private ProgressDialog progressDialog;
     private ListView listView;
+    private long subGroupID = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +75,7 @@ public class LightListActivity extends ActionBarActivity {
         Intent intent = getIntent();
 
         //1 默认是所有灯分组
-        long subGroupID = intent.getLongExtra("subgroup_id", 1);
+        subGroupID = intent.getLongExtra("subgroup_id", 1);
         subGroup = SubGroup.load(SubGroup.class, subGroupID);
         setTitle(subGroup.name);
         lights = new ArrayList<>();
@@ -289,13 +290,128 @@ public class LightListActivity extends ActionBarActivity {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.light_item, parent, false);
 
-                LightGroup lightGroup = getItem(position);
+                final View lightView = convertView;
+                final LightGroup lightGroup = getItem(position);
                 TextView textView = (TextView)convertView.findViewById(R.id.light_name_tv);
                 textView.setText(lightGroup.light.name);
                 if (lightGroup.light.lostConnection) {
                     ImageView imageView = (ImageView)convertView.findViewById(R.id.light_status_iv);
                     imageView.setImageResource(R.drawable.offline);
                 }
+
+                ImageView editIV = (ImageView)convertView.findViewById(R.id.light_rename);
+                editIV.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        progressDialog = ProgressDialog.show(LightListActivity.this, Constants.SYSTEM_SETTINGS.ELIGHTE,"",true);
+                        progressDialog.setCancelable(true);
+                        //进入站点识别状态
+//                        final LightGroup lightGroup = subGroupLightsListViewAdapter.getItem(position);
+                        if (lightGroup.light.lostConnection) {
+                            Toast.makeText(LightListActivity.this, "该灯当前不可用",Toast.LENGTH_LONG).show();
+                            progressDialog.dismiss();
+                            return;
+                        }
+                        String lightID = lightGroup.light.lightID;
+                        final Light light = lightGroup.light;
+                        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+                        dataAgent.enterStationIdentify(LightListActivity.this, new ResultReceiver(new Handler()) {
+                            @Override
+                            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                                progressDialog.dismiss();
+                                if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                                    //读到了回应消息
+                                    byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                                    short isShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                                    //解析回应消息
+                                    CommonMsgResponse enterStationIdReturnMsg = null;
+                                    try {
+                                        enterStationIdReturnMsg = MessageUtils.decomposeEnterStationIdReturnMsg(msgBytes, msgBytes.length, isShould);
+                                    } catch (Exception e) {
+                                        Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                                        Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
+                                        return;
+                                    }
+
+                                    if (enterStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                                        Log.w(TAG, String.format("消息返回错误[%s]", enterStationIdReturnMsg.getReturnCode() + ""));
+                                        Toast.makeText(LightListActivity.this, AppUtils.getErrorInfo(enterStationIdReturnMsg.getReturnCode() + ""), Toast.LENGTH_LONG).show();
+                                        return;
+                                    }
+
+                                    Log.i(TAG, "进入站点识别--回应消息 " + enterStationIdReturnMsg.toString());
+
+                                    //弹出对话框进行输入
+                                    EditText editText = new EditText(LightListActivity.this);
+
+                                    RenameLightListener renameLightListener = new RenameLightListener(light,lightView,editText);
+                                    RenameLightCancelListener renameLightCancelListener = new RenameLightCancelListener(light);
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(LightListActivity.this).setTitle("重命名").setIcon(android.R.drawable.ic_menu_edit)
+                                            .setView(editText)
+                                            .setPositiveButton("确定", renameLightListener)
+                                            .setNegativeButton("取消", renameLightCancelListener);
+                                    AlertDialog alertDialog = builder.create();
+                                    alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+                                    alertDialog.show();
+
+                                    editText.setFocusable(true);
+                                    editText.requestFocus();
+                                } else {
+                                    Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                                    Log.w(TAG, "错误码 " + resultCode);
+                                }
+                            }
+                        }, lightID);
+                    }
+                });
+                textView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        final PopupWindow popup = new PopupWindow(LightListActivity.this);
+                        //设置弹出窗口的样式
+                        View layout = LightListActivity.this.getLayoutInflater().inflate(R.layout.popup_scene_control, null);
+
+                        popup.setContentView(layout);
+                        // Set content width and height
+                        popup.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
+                        popup.setWidth(WindowManager.LayoutParams.MATCH_PARENT);
+                        // Closes the popup window when touch outside of it - when looses focus
+                        popup.setOutsideTouchable(true);
+                        popup.setFocusable(true);
+
+                        // Show anchored to button
+                        popup.setBackgroundDrawable(new BitmapDrawable());
+                        popup.showAsDropDown(v);
+                        layout.findViewById(R.id.scene_control_edit).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                popup.dismiss();
+                                Intent intent = new Intent(LightListActivity.this, GroupControlActivity.class);
+                                intent.putExtra("subgroup_id", -1);
+                                intent.putExtra("single_light_id", lightGroup.light.lightID);
+                                startActivity(intent);
+                            }
+                        });
+
+                        //添加灯亮度调节
+                        final SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
+                        seekBar.setProgress(lightGroup.light.brightness);
+
+                        BrightChangeListener brightChangeListener = new BrightChangeListener(lightGroup.light);
+                        seekBar.setOnSeekBarChangeListener(brightChangeListener);
+
+                        //添加设置场景亮度为0的事件
+                        layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                seekBar.setProgress(0);
+                            }
+                        });
+
+                        //发送整个分组的设置命令
+//                    sendScenePackControl(group);
+                    }
+                });
 
                 CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_item_cb);
                 checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -306,6 +422,86 @@ public class LightListActivity extends ActionBarActivity {
                 });
             }
             return convertView;
+        }
+    }
+
+    class BrightChangeListener implements SeekBar.OnSeekBarChangeListener {
+        private boolean sendBright = true;
+        private DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        private Light brightLight;
+        private Handler sendBrightHandler = new Handler();
+        private Runnable sendBrightRunnable = new Runnable() {
+            @Override
+            public void run() {
+                sendBright = true;
+            }
+        };
+
+        private short[] stationIDs;
+        private int stationCount;
+        public BrightChangeListener(Light light) {
+            stationCount = 1;
+            stationIDs = new short[1];
+            stationIDs[0] = Short.parseShort(light.lightID);
+            this.brightLight = light;
+        }
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, final int progress, boolean fromUser) {
+            if (sendBright) {
+                Log.d(TAG, "亮度调节度 " + progress);
+                sendBright = false;
+                float temp = progress/100f;
+                int brightValue = (int)Math.floor(temp*254f + 0.5);
+                byte[] brights = new byte[stationCount];
+                Arrays.fill(brights, (byte) brightValue);
+
+                dataAgent.setMultiStationBrightness(LightListActivity.this,stationIDs, brights, new ResultReceiver(new Handler()) {
+                    @Override
+                    protected void onReceiveResult(int resultCode, Bundle resultData) {
+                        if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                            //读到了回应消息
+                            byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                            short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                            //解析回应消息
+                            CommonMsgResponse msgResponse = null;
+                            try {
+                                msgResponse = MessageUtils.decomposeMultiStationBrightControlResponse(msgBytes, msgBytes.length, idShould);
+                            } catch (Exception e) {
+                                Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                                Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            //检测操作结果
+                            if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                                Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                                Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            //设置正确
+                            //调整数据库中该场景的亮度值
+                            brightLight.brightness = progress;
+                            brightLight.save();
+                        } else {
+                            Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                            Log.w(TAG, "错误码 " + resultCode);
+                        }
+                    }
+                });
+                //500毫秒之后再接收消息
+                sendBrightHandler.postDelayed(sendBrightRunnable, 500);
+            }
+
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+
         }
     }
 
@@ -347,6 +543,10 @@ public class LightListActivity extends ActionBarActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_light_list, menu);
+        if (subGroupID == 1) {
+            menu.findItem(R.id.action_lightlist_add).setVisible(false);
+            menu.findItem(R.id.action_remove_light_from_group).setVisible(false);
+        }
         return true;
     }
 

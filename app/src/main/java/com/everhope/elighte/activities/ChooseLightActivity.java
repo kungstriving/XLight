@@ -14,6 +14,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -90,6 +91,11 @@ public class ChooseLightActivity extends ActionBarActivity {
             Light light = getItem(position);
             TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
             textView.setText(light.name);
+            if (light.lostConnection) {
+                ImageView imageView = (ImageView)convertView.findViewById(R.id.choose_light_icon);
+                imageView.setImageResource(R.drawable.offline);
+            }
+
             CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_cb);
             checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override

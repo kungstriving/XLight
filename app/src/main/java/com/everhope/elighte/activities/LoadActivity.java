@@ -154,6 +154,7 @@ public class LoadActivity extends ActionBarActivity {
                                                     new DialogInterface.OnClickListener() {
                                                         @Override
                                                         public void onClick(DialogInterface dialog, int which) {
+                                                            progressBar.setVisibility(ProgressBar.VISIBLE);
                                                             connectAndLoginToGate();
                                                         }
                                     }).create();
@@ -283,6 +284,7 @@ public class LoadActivity extends ActionBarActivity {
                                         new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialog, int which) {
+                                                progressBar.setVisibility(ProgressBar.VISIBLE);
                                                 connectAndLoginToGate();
                                             }
                                         }).create();

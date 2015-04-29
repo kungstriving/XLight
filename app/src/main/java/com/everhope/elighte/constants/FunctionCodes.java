@@ -19,7 +19,10 @@ public class FunctionCodes {
         //进入站点识别
         ENTER_STATION_IDENTIFY(Byte.decode("0x42")),
         //退出站点识别
-        EXIT_STATION_IDENTIFY(Byte.decode("0x43"));
+        EXIT_STATION_IDENTIFY(Byte.decode("0x43")),
+
+        DEL_STATION_FORCE(Byte.decode("0x44"));
+
 
         private byte funcCode;
 

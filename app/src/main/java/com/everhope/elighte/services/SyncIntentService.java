@@ -1,14 +1,20 @@
 package com.everhope.elighte.services;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.IntentService;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.util.Log;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.everhope.elighte.XLightApplication;
+import com.everhope.elighte.activities.APSetupActivity;
 import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.constants.FunctionCodes;
@@ -69,10 +75,50 @@ public class SyncIntentService extends IntentService {
             if (ACTION_SYNC_STATION_STATUS.equals(action)) {
 //                ResultReceiver receiver = new ResultReceiver(new )
                 handleActionSyncStationStatus();
+                checkSocketStatus();
             }
         }
     }
 
+    private void checkSocketStatus() {
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        if (!dataAgent.isConnected()) {
+            Log.w(TAG, "当前socket已断开，进行重连操作");
+            Toast.makeText(getApplicationContext(), "网关失联，正在重新连接...", Toast.LENGTH_LONG).show();
+            try {
+                dataAgent.reconnect();
+            } catch (IOException e) {
+                //重连失败，需要进行重新网关设置
+                Log.w(TAG, "网关重连失败");
+                showReconfigWindow();
+            }
+        }
+    }
+
+    private void showReconfigWindow() {
+
+        Dialog dialog = new AlertDialog.Builder(getApplicationContext())
+                .setTitle("错误")
+                .setMessage("网关连接失败")
+                .setPositiveButton("重新设置",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                                Intent intent = new Intent(getApplicationContext(), APSetupActivity.class);
+                                startActivity(intent);
+                            }
+                        })
+                .setNegativeButton("重试一次",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                checkSocketStatus();
+                            }
+                        }).create();
+
+        dialog.show();
+    }
     /**
      * 处理同步操作
      */
@@ -116,7 +162,7 @@ public class SyncIntentService extends IntentService {
 
         try {
             //清空管道 重要！！ 否则读取到之前的消息
-            socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_LONG_SOTIMEOUT);
+            //socket.setSoTimeout(Constants.SYSTEM_SETTINGS.NETWORK_DATA_LONG_SOTIMEOUT);
             is.skip(is.available());
 
             os.write(bytes);

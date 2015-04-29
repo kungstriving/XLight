@@ -22,12 +22,12 @@
         android:textColor="#000"
         android:layout_weight="1"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
-    <ImageView
+<!--    <ImageView
         android:id="@+id/remoter_details"
         android:layout_width="match_parent"
         android:layout_height="24dp"
         android:layout_margin="5dp"
         android:layout_gravity="center_vertical"
         android:layout_weight="4"
-        android:src="@drawable/ic_action_overflow"/>
+        android:src="@drawable/ic_action_overflow"/>-->
 </LinearLayout>

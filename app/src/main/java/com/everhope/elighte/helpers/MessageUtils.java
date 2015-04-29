@@ -7,6 +7,7 @@ import com.everhope.elighte.models.BindStationsToRemoterMsg;
 import com.everhope.elighte.models.ClientLoginMsg;
 import com.everhope.elighte.models.ClientLoginMsgResponse;
 import com.everhope.elighte.models.CommonMsgResponse;
+import com.everhope.elighte.models.DeleteStationForceMsg;
 import com.everhope.elighte.models.DeleteStationMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.ExitStationIdentifyMsg;
@@ -87,6 +88,14 @@ public class MessageUtils {
         exitStationIdentifyMsg.buildUp();
 
         return exitStationIdentifyMsg;
+    }
+
+    public static DeleteStationForceMsg composeDeleteStationForceMsg(short stationID) {
+        DeleteStationForceMsg deleteStationForceMsg = new DeleteStationForceMsg();
+        deleteStationForceMsg.setObjectID(stationID);
+        deleteStationForceMsg.buildUp();
+
+        return deleteStationForceMsg;
     }
 
     public static DeleteStationMsg composeDeleteStationMsg(short stationID) {

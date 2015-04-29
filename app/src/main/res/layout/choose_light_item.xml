@@ -6,6 +6,7 @@
     android:background="@color/main_back">
 
     <ImageView
+        android:id="@+id/choose_light_icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_margin="5dp"
@@ -22,7 +23,8 @@
         android:paddingRight="16dp"
         android:textColor="@color/white"
         android:layout_weight="8"
-        android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
+        android:minHeight="?android:attr/listPreferredItemHeightSmall"
+        android:maxLines="1" />
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

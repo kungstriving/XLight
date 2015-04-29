@@ -84,6 +84,8 @@ public class GroupControlActivity extends ActionBarActivity {
     //分组名称
     private String title = "";
 
+    private long groupID = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,7 +94,7 @@ public class GroupControlActivity extends ActionBarActivity {
         //获取数据库存储分组信息
         Intent intent = getIntent();
         //默认获取所有分组
-        long groupID = intent.getLongExtra("subgroup_id",-1);
+        groupID = intent.getLongExtra("subgroup_id",-1);
         if (groupID != -1) {
             //正常情况
             this.subGroup = SubGroup.load(SubGroup.class, groupID);
@@ -103,8 +105,16 @@ public class GroupControlActivity extends ActionBarActivity {
             for(int i = 0; i < this.ids.length; i++) {
                 this.ids[i] = Short.parseShort(this.lightGroups.get(i).light.lightID);
             }
+            setTitle(this.subGroup.name);
         } else {
-            Toast.makeText(GroupControlActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+            //groupID = -1 为单灯操作情况
+            this.ids = new short[1];
+            short lightID = Short.parseShort(intent.getStringExtra("single_light_id"));
+            this.ids[0] = lightID;
+            this.subGroup = new SubGroup();
+            this.lightGroups = new ArrayList<>();
+            this.lightGroups.add(new LightGroup());
+            setTitle("灯操作");
         }
         final Handler sendColorHandler = new Handler();
         final Runnable timerRunnable = new Runnable() {
@@ -173,8 +183,11 @@ public class GroupControlActivity extends ActionBarActivity {
     protected void onPause() {
         super.onPause();
 
-        //持久化到数据库相关数据
-        this.subGroup.save();
+        if (groupID != -1) {
+            //持久化到数据库相关数据
+            this.subGroup.save();
+        }
+
     }
 
     @Override

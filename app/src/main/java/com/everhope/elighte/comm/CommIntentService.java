@@ -13,6 +13,7 @@ import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.BindStationsToRemoterMsg;
 import com.everhope.elighte.models.ClientLoginMsg;
+import com.everhope.elighte.models.DeleteStationForceMsg;
 import com.everhope.elighte.models.DeleteStationMsg;
 import com.everhope.elighte.models.EnterStationIdentifyMsg;
 import com.everhope.elighte.models.ExitStationIdentifyMsg;
@@ -84,6 +85,8 @@ public class CommIntentService extends IntentService {
     private static final String ACTION_SEARCH_NEW_STATIONS = "action.search.new.stations";
 
     private static final String ACTION_DELETE_STATION = "action.delete.station";
+
+    private static final String ACTION_DELETE_STATION_FORCE = "action.delete.station.force";
 
     private static final String ACTION_SEND_SCENE_CONTROL = "action.send.scene.control";
 
@@ -193,6 +196,15 @@ public class CommIntentService extends IntentService {
 
         intent.putExtra(EXTRA_STATION_ID, stationID);
         intent.putExtra(EXTRA_HSB_COLOR, hsb);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
+
+    public static void startActionDeleteStationForce(Context context, short stationID, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_DELETE_STATION_FORCE);
+        intent.putExtra(EXTRA_STATION_ID, stationID);
         intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
 
         context.startService(intent);
@@ -455,6 +467,12 @@ public class CommIntentService extends IntentService {
                     short stationIDToDelete = intent.getShortExtra(EXTRA_STATION_ID, (short)0);
                     handleActionDeleteStation(stationIDToDelete, receiver);
                     break;
+                case ACTION_DELETE_STATION_FORCE:
+                    //强制删除站点
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    stationIDToDelete = intent.getShortExtra(EXTRA_STATION_ID, (short)0);
+                    handleActionDeleteStationForce(stationIDToDelete, receiver);
+                    break;
                 case ACTION_BIND_STATIONS_REMOTER:
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     short remoterID = intent.getShortExtra(EXTRA_REMOTER_ID,(short)0);
@@ -570,6 +588,45 @@ public class CommIntentService extends IntentService {
 
         byte[] bytes = multiStationColorControlMsg.toMessageByteArray();
         short msgID = multiStationColorControlMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
+
+    private void handleActionDeleteStationForce(short id, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        DeleteStationForceMsg deleteStationForceMsg = MessageUtils.composeDeleteStationForceMsg(id);
+
+        Log.d(TAG, String.format("强制删除站点-消息[%s]", deleteStationForceMsg.toString()));
+
+        byte[] bytes = deleteStationForceMsg.toMessageByteArray();
+        short msgID = deleteStationForceMsg.getMessageID();
 
         try {
             //clear

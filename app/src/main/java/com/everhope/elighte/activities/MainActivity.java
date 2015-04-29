@@ -31,6 +31,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.activeandroid.ActiveAndroid;
 import com.everhope.elighte.XLightApplication;
 import com.everhope.elighte.adapters.LeftMenuAdapter;
 import com.everhope.elighte.comm.DataAgent;
@@ -46,6 +47,7 @@ import com.everhope.elighte.fragments.SwitchFragment;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.GetAllStationsMsgResponse;
+import com.everhope.elighte.models.LightRemoter;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Remoter;
 import com.everhope.elighte.models.SubGroup;
@@ -150,7 +152,9 @@ public class MainActivity extends ActionBarActivity {
 
                     StationObject[] gateAllStations = getAllStationsMsgResponse.getStationObjects();
 
-                    //判断删除可以不用做 可能引起不必要的麻烦 可以使用设置菜单中的删除设备按钮
+                    if (gateAllStations == null || gateAllStations.length == 0) {
+                        return;
+                    }
                     //判断新增或修改
 
                     for (StationObject stationObject : gateAllStations) {
@@ -170,6 +174,9 @@ public class MainActivity extends ActionBarActivity {
 
                     }
 
+                    //判断是否删除
+                    checkDeleteLight(myLights, gateAllStations);
+                    checkDeleteRemoter(myRemoters, gateAllStations);
                 } else {
                     //出错
                     Log.e(TAG, String.format("获取所有站点列表出错 Code=[%s]", resultCode + ""));
@@ -187,10 +194,64 @@ public class MainActivity extends ActionBarActivity {
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         alarm.cancel(pIntent);
 
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000, intervalMillis, pIntent);
+        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+100, intervalMillis, pIntent);
 
         Log.i(TAG, "启动周期同步服务");
         //各个站点状态
+    }
+
+    private void checkDeleteLight(List<Light> myLights, StationObject[] allStations) {
+        for(Light light : myLights) {
+            boolean delete = true;
+            for(StationObject stationObject : allStations) {
+                if (light.lightMac.equals(stationObject.getMac())) {
+                    delete = false;
+                    break;
+                }
+            }
+
+            if (delete) {
+                //如果需要删除该灯
+                List<LightScene> lightScenes = light.lightScenes();
+                for(LightScene lightScene : lightScenes) {
+                    lightScene.delete();
+                }
+                List<LightGroup> lightGroups = light.lightGroups();
+                for(LightGroup lightGroup : lightGroups) {
+                    lightGroup.delete();
+                }
+                List<LightRemoter> lightRemoters = light.lightRemoters();
+                for(LightRemoter lightRemoter : lightRemoters) {
+                    lightRemoter.delete();
+                }
+
+                light.delete();
+            }
+        }
+    }
+
+    private void checkDeleteRemoter(List<Remoter> myRemoters, StationObject[] allStations) {
+        for(Remoter remoter : myRemoters) {
+            boolean delete = true;
+            for(StationObject stationObject : allStations) {
+                if (remoter.remoterMac.equals(stationObject.getMac())) {
+                    delete = false;
+                    break;
+                }
+            }
+
+            if (delete) {
+                //如果需要删除该灯
+                for (int i  = 1 ; i <= 4; i++) {
+                    List<LightRemoter> lightRemoters = remoter.groupLightRemoters(i + "");
+                    for(LightRemoter tmp : lightRemoters) {
+                        tmp.delete();
+                    }
+                }
+
+                remoter.delete();
+            }
+        }
     }
 
     private void syncLight(List<Light> allLights, StationObject light) {

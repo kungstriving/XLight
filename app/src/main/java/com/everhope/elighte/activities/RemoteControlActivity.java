@@ -33,6 +33,36 @@ public class RemoteControlActivity extends ActionBarActivity {
             }
         });
 
+        findViewById(R.id.remoter_gp2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent remoterIntent = new Intent(RemoteControlActivity.this, RemoterGroupActivity.class);
+                remoterIntent.putExtra("remoter_id",remoterID);
+                remoterIntent.putExtra("remoter_gp_num",2);
+                startActivity(remoterIntent);
+            }
+        });
+
+        findViewById(R.id.remoter_gp3).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent remoterIntent = new Intent(RemoteControlActivity.this, RemoterGroupActivity.class);
+                remoterIntent.putExtra("remoter_id",remoterID);
+                remoterIntent.putExtra("remoter_gp_num",3);
+                startActivity(remoterIntent);
+            }
+        });
+
+        findViewById(R.id.remoter_gp4).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent remoterIntent = new Intent(RemoteControlActivity.this, RemoterGroupActivity.class);
+                remoterIntent.putExtra("remoter_id",remoterID);
+                remoterIntent.putExtra("remoter_gp_num",4);
+                startActivity(remoterIntent);
+            }
+        });
+
         //添加返回按钮
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);

@@ -107,12 +107,12 @@ public class Constants {
         /**
          * 广播服务发现超时时间 8秒
          */
-        public static final int BROADCASE_SERVICE_DISCOVER_SOTIMEOUT = 8*1000;
+        public static final int BROADCASE_SERVICE_DISCOVER_SOTIMEOUT = 5*1000;
 
         /**
          * 广播服务发现重试次数
          */
-        public static final int BROADCAST_SERVICE_DISCOVER_RETRY_TIMES = 5;
+        public static final int BROADCAST_SERVICE_DISCOVER_RETRY_TIMES = 3;
 
         /**
          * 读取数据超时8秒
@@ -130,9 +130,9 @@ public class Constants {
         public static final int SYNC_INTERVAL = 60000;
 
         /**
-         * 建立连接超时 16秒
+         * 建立连接超时 5秒
          */
-        public static final int NETWORK_CONNECT_TIMEOUT = 16*1000;
+        public static final int NETWORK_CONNECT_TIMEOUT = 5*1000;
 
         /**
          * 发送数据出错情况下 重试次数
@@ -147,7 +147,7 @@ public class Constants {
         /**
          * 连接重试次数
          */
-        public static final int CONNECT_RETRY_TIMES = 5;
+        public static final int CONNECT_RETRY_TIMES = 3;
 
         /**
          * 网关连接重试间隔毫秒数

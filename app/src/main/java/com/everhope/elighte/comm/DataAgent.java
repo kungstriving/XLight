@@ -156,6 +156,10 @@ public class DataAgent {
         CommIntentService.startActionSearchNewStations(context, lastSecs, receiver);
     }
 
+    public void deleteStationForce(Context context, short stationID, ResultReceiver receiver) {
+        CommIntentService.startActionDeleteStationForce(context, stationID, receiver);
+    }
+
     public void deleteStation(Context context,short stationID, ResultReceiver receiver) {
         CommIntentService.startActionDeleteStation(context, stationID, receiver);
     }
@@ -239,6 +243,7 @@ public class DataAgent {
 
     public boolean isConnected() {
         if (this.socket != null) {
+
             return this.socket.isConnected();
         } else {
             return false;

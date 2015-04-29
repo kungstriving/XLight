@@ -6,4 +6,8 @@
         android:icon="@drawable/ic_action_new"
         android:title="@string/action_sceneedit_save"
         android:orderInCategory="100" app:showAsAction="ifRoom" />
+    <item android:id="@+id/action_sceneedit_delete"
+        android:icon="@drawable/ic_action_discard"
+        android:title="删除灯"
+        app:showAsAction="ifRoom" />
 </menu>

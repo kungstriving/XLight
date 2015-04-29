@@ -90,6 +90,8 @@ public class SceneEditActivity extends ActionBarActivity {
     private boolean sendColor = true;
     //场景名称
     private String title = "";
+    //当前操作的灯
+    private LightScene currentLightScene;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -288,6 +290,7 @@ public class SceneEditActivity extends ActionBarActivity {
             View view = (View)event.getLocalState();        //light-icon view
             int lightIndex = Integer.parseInt(view.getTag().toString());
             LightScene lightScene = lightScenes.get(lightIndex);
+            currentLightScene = lightScene;
             final String lightID = lightScene.light.lightID;
             String lightName = lightScene.light.name;
             switch (action) {
@@ -463,19 +466,22 @@ public class SceneEditActivity extends ActionBarActivity {
             }
 
             //将选中的灯加入到该场景中
+            int count = 1;
             for(Long newID : listIDs) {
                 Light newLight = Light.load(Light.class, newID);
                 LightScene newLightScene = new LightScene();
                 newLightScene.light = newLight;
+                newLightScene.x = 5*count;
+                newLightScene.y = 5*count;
                 newLightScene.scene = this.scene;
                 newLightScene.save();
-
+                count++;
             }
 
             this.lightScenes = this.scene.lightScenes();
             loaded = false;
             this.onWindowFocusChanged(true);
-            Toast.makeText(SceneEditActivity.this, Arrays.toString(ids), Toast.LENGTH_LONG).show();
+//            Toast.makeText(SceneEditActivity.this, Arrays.toString(ids), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -499,6 +505,18 @@ public class SceneEditActivity extends ActionBarActivity {
                 //默认从所有灯分组中选取灯
                 intent.putExtra("subgroup_id",1);
                 startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
+                return true;
+            case R.id.action_sceneedit_delete:
+                //从场景中删除灯
+                if (currentLightScene != null) {
+                    currentLightScene.delete();
+                    this.lightScenes = this.scene.lightScenes();
+                    loaded = false;
+                    this.onWindowFocusChanged(true);
+                    setTitle(scene.name);
+                } else {
+                    Toast.makeText(SceneEditActivity.this, "请选择要删除的灯", Toast.LENGTH_LONG).show();
+                }
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
