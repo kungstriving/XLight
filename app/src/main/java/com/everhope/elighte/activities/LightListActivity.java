@@ -402,21 +402,21 @@ public class LightListActivity extends ActionBarActivity {
 
                         //添加设置单灯开关事件
                         ImageView imageView = (ImageView)layout.findViewById(R.id.scene_power_switch);
-                        imageView.setImageResource(lightGroup.light.switchOn ? R.drawable.light_off : R.drawable.light_on);
+                        imageView.setImageResource(lightGroup.light.switchOn ? R.drawable.light_on : R.drawable.light_off);
                         imageView.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
                                 ImageView imageView = (ImageView)v;
                                 if (lightGroup.light.switchOn) {
                                     //关闭 off
-                                    imageView.setImageResource(R.drawable.light_on);
+                                    imageView.setImageResource(R.drawable.light_off);
                                     lightGroup.light.switchOn = false;
                                     //发送off命令
                                     sendSceneOnOffControl(lightGroup.light, false);
 //                            seekBar.setProgress(0);
                                 } else {
                                     //打开 on
-                                    imageView.setImageResource(R.drawable.light_off);
+                                    imageView.setImageResource(R.drawable.light_on);
                                     lightGroup.light.switchOn = true;
                                     seekBar.setProgress(lightGroup.light.brightness);
                                     //发送on命令

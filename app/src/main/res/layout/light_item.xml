@@ -23,7 +23,9 @@
         android:paddingRight="16dp"
         android:textColor="#fff"
         android:layout_weight="7"
-        android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
+        android:minHeight="?android:attr/listPreferredItemHeightSmall"
+        android:singleLine="true"
+        android:ellipsize="end"/>
     <ImageView
         android:id="@+id/light_rename"
         android:layout_width="24dp"

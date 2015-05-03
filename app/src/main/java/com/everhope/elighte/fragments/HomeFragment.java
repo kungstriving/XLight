@@ -162,21 +162,21 @@ public class HomeFragment extends Fragment{
 
                 //添加设置场景开关事件
                 ImageView imageView = (ImageView)layout.findViewById(R.id.scene_power_switch);
-                imageView.setImageResource(scene.status == 1 ? R.drawable.light_off : R.drawable.light_on);
+                imageView.setImageResource(scene.status == 0 ? R.drawable.light_off : R.drawable.light_on);
                 imageView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         ImageView imageView = (ImageView)v;
                         if (scene.status == 1) {
                             //关闭 off
-                            imageView.setImageResource(R.drawable.light_on);
+                            imageView.setImageResource(R.drawable.light_off);
                             scene.status = 0;
                             //发送off命令
                             sendSceneOnOffControl(scene, false);
 //                            seekBar.setProgress(0);
                         } else {
                             //打开 on
-                            imageView.setImageResource(R.drawable.light_off);
+                            imageView.setImageResource(R.drawable.light_on);
                             scene.status = 1;
                             seekBar.setProgress(scene.brightness);
                             //发送on命令

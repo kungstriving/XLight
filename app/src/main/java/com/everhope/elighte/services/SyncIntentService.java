@@ -75,7 +75,7 @@ public class SyncIntentService extends IntentService {
             if (ACTION_SYNC_STATION_STATUS.equals(action)) {
 //                ResultReceiver receiver = new ResultReceiver(new )
                 handleActionSyncStationStatus();
-                checkSocketStatus();
+//                checkSocketStatus();
             }
         }
     }
@@ -186,6 +186,15 @@ public class SyncIntentService extends IntentService {
         } catch (IOException e) {
             e.printStackTrace();
             Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            Toast.makeText(getApplicationContext(), "网关失联，正在重新连接...", Toast.LENGTH_SHORT).show();
+            try {
+                dataAgent.reconnect();
+            } catch (IOException e1) {
+                //重连失败，需要进行重新网关设置
+                Log.w(TAG, "网关重连失败");
+//                showReconfigWindow();
+                Toast.makeText(getApplicationContext(), "重连失败", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 

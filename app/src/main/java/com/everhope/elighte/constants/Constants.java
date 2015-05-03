@@ -125,9 +125,9 @@ public class Constants {
         public static final int NETWORK_DATA_LONG_SOTIMEOUT = 20000;
 
         /**
-         * 同步数据间隔60秒
+         * 同步数据间隔30秒
          */
-        public static final int SYNC_INTERVAL = 60000;
+        public static final int SYNC_INTERVAL = 30000;
 
         /**
          * 建立连接超时 5秒

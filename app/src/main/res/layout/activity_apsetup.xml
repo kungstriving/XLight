@@ -83,7 +83,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/set_ssid_btn"
-            android:text="发送到网关"/>
+            android:text="确定"/>
     </LinearLayout>
 
     <ProgressBar
