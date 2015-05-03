@@ -202,20 +202,47 @@ public class LightFragment extends Fragment {
                         }
                     });
 
-                    //添加场景亮度调节
+                    //添加分组亮度调节
                     final SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
                     seekBar.setProgress(group.brightness);
 
                     BrightChangeListener brightChangeListener = new BrightChangeListener(group);
                     seekBar.setOnSeekBarChangeListener(brightChangeListener);
 
-                    //添加设置场景亮度为0的事件
-                    layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+                    //添加设置分组开关事件
+                    ImageView imageView = (ImageView)layout.findViewById(R.id.scene_power_switch);
+                    imageView.setImageResource(group.status == 1 ? R.drawable.light_off : R.drawable.light_on);
+                    imageView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            seekBar.setProgress(0);
+                            ImageView imageView = (ImageView)v;
+                            if (group.status == 1) {
+                                //关闭 off
+                                imageView.setImageResource(R.drawable.light_on);
+                                group.status = 0;
+                                //发送off命令
+                                sendSceneOnOffControl(group, false);
+//                            seekBar.setProgress(0);
+                            } else {
+                                //打开 on
+                                imageView.setImageResource(R.drawable.light_off);
+                                group.status = 1;
+                                seekBar.setProgress(group.brightness);
+                                //发送on命令
+                                sendSceneOnOffControl(group, true);
+//                            sendSceneOnControl(scene);
+                            }
+
                         }
                     });
+
+                    //添加设置场景亮度为0的事件
+//                    layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+//                        @Override
+//                        public void onClick(View v) {
+//                            seekBar.setProgress(0);
+//                        }
+//                    });
 
                     //发送整个分组的设置命令
 //                    sendScenePackControl(group);
@@ -243,6 +270,58 @@ public class LightFragment extends Fragment {
                 checkBox.setEnabled(false);
             }
             return convertView;
+        }
+    }
+
+    /**
+     * 发送场景off命令
+     * @param group
+     */
+    private void sendSceneOnOffControl(final SubGroup group, boolean onoff) {
+        //获取当前场景所有灯
+        List<LightGroup> lightGroups = group.lightGroups();
+        if (lightGroups.size() != 0) {
+            int length = lightGroups.size();
+            short[] ids = new short[length];
+            for(int i = 0; i < length; i++) {
+                LightGroup lightGroup = lightGroups.get(i);
+                ids[i] = Short.parseShort(lightGroup.light.lightID);
+            }
+
+            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+
+            dataAgent.setLightsOnOff(getActivity(), ids, onoff, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                        //读到了回应消息
+                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                        //解析回应消息
+                        CommonMsgResponse msgResponse = null;
+                        try {
+                            msgResponse = MessageUtils.decomposeCommonMsgResponse(msgBytes, msgBytes.length, idShould);
+                            Log.i(TAG, String.format("场景开关命令返回-[%s]", msgResponse.toString()));
+                        } catch (Exception e) {
+                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                            Toast.makeText(getActivity(), "消息错误", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        //检测操作结果
+                        if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                            Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
+                        //操作成功 保存
+                        group.save();
+                    } else {
+                        Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "错误码 " + resultCode);
+                    }
+                }
+            });
         }
     }
 

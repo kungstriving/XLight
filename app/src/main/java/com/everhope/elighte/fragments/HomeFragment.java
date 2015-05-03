@@ -114,7 +114,7 @@ public class HomeFragment extends Fragment{
 
         //场景图片
         ImageView sceneImg = new ImageView(getActivity());
-        int sceneImgID = getResources().getIdentifier(scene.imgName, "drawable", getActivity().getPackageName());
+        final int sceneImgID = getResources().getIdentifier(scene.imgName, "drawable", getActivity().getPackageName());
         sceneImg.setImageResource(sceneImgID);
         //设置边框
         sceneImg.setBackgroundDrawable(getResources().getDrawable(R.drawable.scene_border));
@@ -160,16 +160,38 @@ public class HomeFragment extends Fragment{
                 BrightChangeListener brightChangeListener = new BrightChangeListener(scene);
                 seekBar.setOnSeekBarChangeListener(brightChangeListener);
 
-                //添加设置场景亮度为0的事件
-                layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+                //添加设置场景开关事件
+                ImageView imageView = (ImageView)layout.findViewById(R.id.scene_power_switch);
+                imageView.setImageResource(scene.status == 1 ? R.drawable.light_off : R.drawable.light_on);
+                imageView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        seekBar.setProgress(0);
+                        ImageView imageView = (ImageView)v;
+                        if (scene.status == 1) {
+                            //关闭 off
+                            imageView.setImageResource(R.drawable.light_on);
+                            scene.status = 0;
+                            //发送off命令
+                            sendSceneOnOffControl(scene, false);
+//                            seekBar.setProgress(0);
+                        } else {
+                            //打开 on
+                            imageView.setImageResource(R.drawable.light_off);
+                            scene.status = 1;
+                            seekBar.setProgress(scene.brightness);
+                            //发送on命令
+                            sendSceneOnOffControl(scene, true);
+//                            sendSceneOnControl(scene);
+                        }
+
                     }
                 });
 
                 //发送整个场景的设置命令
                 sendScenePackControl(scene);
+
+                //设置scene状态为开启
+//                scene.status = 1;
             }
         });
 
@@ -185,6 +207,58 @@ public class HomeFragment extends Fragment{
         scenePane.addView(sceneText, textLayoutParams);
 
         return scenePane;
+    }
+
+    /**
+     * 发送场景off命令
+     * @param scene
+     */
+    private void sendSceneOnOffControl(final Scene scene, boolean onoff) {
+        //获取当前场景所有灯
+        List<LightScene> lightScenes = scene.lightScenes();
+        if (lightScenes.size() != 0) {
+            int length = lightScenes.size();
+            short[] ids = new short[length];
+            for(int i = 0; i < length; i++) {
+                LightScene lightScene = lightScenes.get(i);
+                ids[i] = Short.parseShort(lightScene.light.lightID);
+            }
+
+            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+
+            dataAgent.setLightsOnOff(getActivity(), ids, onoff, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                        //读到了回应消息
+                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                        //解析回应消息
+                        CommonMsgResponse msgResponse = null;
+                        try {
+                            msgResponse = MessageUtils.decomposeCommonMsgResponse(msgBytes, msgBytes.length, idShould);
+                            Log.i(TAG, String.format("场景开关命令返回-[%s]", msgResponse.toString()));
+                        } catch (Exception e) {
+                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                            Toast.makeText(getActivity(), "消息错误", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        //检测操作结果
+                        if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                            Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
+                        //操作成功 保存
+                        scene.save();
+                    } else {
+                        Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "错误码 " + resultCode);
+                    }
+                }
+            });
+        }
     }
 
     private void sendScenePackControl(Scene scene) {

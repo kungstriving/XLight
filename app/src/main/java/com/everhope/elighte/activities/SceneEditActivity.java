@@ -1,8 +1,10 @@
 package com.everhope.elighte.activities;
 
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -42,6 +44,7 @@ import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
+import com.everhope.elighte.models.SubGroup;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -130,7 +133,7 @@ public class SceneEditActivity extends ActionBarActivity {
                 DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
 
                 //发送消息
-                if (sendColor == true) {
+                if (sendColor) {
                     //发送颜色
                     sendColor = false;
                     dataAgent.setStationColor(SceneEditActivity.this, lightID, hsb, new ResultReceiver(new Handler()) {
@@ -501,10 +504,30 @@ public class SceneEditActivity extends ActionBarActivity {
 
         switch (id) {
             case R.id.action_sceneedit_add:
-                Intent intent = new Intent(SceneEditActivity.this, ChooseLightActivity.class);
-                //默认从所有灯分组中选取灯
-                intent.putExtra("subgroup_id",1);
-                startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
+
+                //获取所有分组
+                List<SubGroup> subGroups = SubGroup.getAll();
+                String[] groupNames = new String[subGroups.size()];
+                final long[] groupIDs = new long[subGroups.size()];
+                for(int i = 0; i < subGroups.size(); i++) {
+                    groupNames[i] = subGroups.get(i).name;
+                    groupIDs[i] = subGroups.get(i).getId();
+                }
+                new AlertDialog.Builder(this).setTitle("灯分组").setIcon(
+                        android.R.drawable.ic_dialog_info).setSingleChoiceItems(
+                            groupNames, -1,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                long id = groupIDs[which];
+                                Intent intent = new Intent(SceneEditActivity.this, ChooseLightActivity.class);
+                                //默认从所有灯分组中选取灯
+                                intent.putExtra("subgroup_id",id);
+                                startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
+                                dialog.dismiss();
+                            }
+                        }).show();
+
+
                 return true;
             case R.id.action_sceneedit_delete:
                 //从场景中删除灯

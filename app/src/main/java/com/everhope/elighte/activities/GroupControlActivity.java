@@ -86,6 +86,8 @@ public class GroupControlActivity extends ActionBarActivity {
 
     private long groupID = 0;
 
+    private Light light;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,6 +112,8 @@ public class GroupControlActivity extends ActionBarActivity {
             //groupID = -1 为单灯操作情况
             this.ids = new short[1];
             short lightID = Short.parseShort(intent.getStringExtra("single_light_id"));
+            this.light = Light.getByLightID(lightID + "");
+
             this.ids[0] = lightID;
             this.subGroup = new SubGroup();
             this.lightGroups = new ArrayList<>();
@@ -186,6 +190,8 @@ public class GroupControlActivity extends ActionBarActivity {
         if (groupID != -1) {
             //持久化到数据库相关数据
             this.subGroup.save();
+        } else {
+            this.light.save();
         }
 
     }
@@ -260,8 +266,14 @@ public class GroupControlActivity extends ActionBarActivity {
         });
 
         FrameLayout.LayoutParams lightLP = new FrameLayout.LayoutParams(80, 80);
-        lightLP.leftMargin = subGroup.x;
-        lightLP.topMargin = subGroup.y;
+        if (this.groupID != -1) {
+            lightLP.leftMargin = subGroup.x;
+            lightLP.topMargin = subGroup.y;
+        } else {
+            lightLP.leftMargin = this.light.x;
+            lightLP.topMargin = this.light.y;
+        }
+
 
         colorPickerFL.addView(lightIV, lightLP);
 
@@ -382,8 +394,14 @@ public class GroupControlActivity extends ActionBarActivity {
                     view.setLayoutParams(vlp);
                     view.setVisibility(View.VISIBLE);
                     //记录位置
-                    subGroup.x = dx;
-                    subGroup.y = dy;
+                    if (groupID != -1) {
+                        subGroup.x = dx;
+                        subGroup.y = dy;
+                    } else {
+                        light.x = dx;
+                        light.y = dy;
+                    }
+
                     //记录颜色值
                     x = (int)(event.getX());
                     y = (int)(event.getY());

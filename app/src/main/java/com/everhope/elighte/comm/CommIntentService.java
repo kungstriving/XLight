@@ -23,6 +23,7 @@ import com.everhope.elighte.models.MultiStationColorControlMsg;
 import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
+import com.everhope.elighte.models.SetLightsOnOffMsg;
 import com.everhope.elighte.models.StationColorControlMsg;
 import com.everhope.elighte.models.UnBindStationsFromRemoterMsg;
 
@@ -90,6 +91,8 @@ public class CommIntentService extends IntentService {
 
     private static final String ACTION_SEND_SCENE_CONTROL = "action.send.scene.control";
 
+    private static final String ACTION_SET_LIGHTS_ONOFF = "action.set.lights.onoff";
+
     private static final String ACTION_BIND_STATIONS_REMOTER = "action.bind.stations.remoter";
 
     private static final String ACTION_UNBIND_STATIONS_REMOTER = "action.unbind.stations.remoter";
@@ -145,7 +148,20 @@ public class CommIntentService extends IntentService {
     private static final String EXTRA_BIND_STATION_REMOTER_NUM = "extra.bind.station.remoter.num";
     private static final String EXTRA_UNBIND_STATION_REMOTER_NUM = "extra.unbind.station.remoter.num";
 
+    private static final String EXTRA_LIGHTS_ONOFF = "extra.lights.onoff";
+
     /////////////////////////////////// 服务启动入口 /////////////////////////////////////////////
+
+    public static void startActionSetLightsOnOff(Context context, short[] stationIDs, boolean on, ResultReceiver receiver) {
+        Intent intent = new Intent(context, CommIntentService.class);
+        intent.setAction(ACTION_SET_LIGHTS_ONOFF);
+
+        intent.putExtra(EXTRA_MULTI_STATIONS_IDS, stationIDs);
+        intent.putExtra(EXTRA_LIGHTS_ONOFF, on);
+        intent.putExtra(EXTRA_RESULTRECEIVER, receiver);
+
+        context.startService(intent);
+    }
 
     public static void startActionUnBindStationFromRemoter(Context context, short remoterID, byte controlNum, short[] ids, ResultReceiver receiver) {
         Intent intent = new Intent(context, CommIntentService.class);
@@ -409,6 +425,13 @@ public class CommIntentService extends IntentService {
                     receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
                     handleActionSetMultiStationsBright(ids,brightBytesArr, receiver);
                     break;
+                case ACTION_SET_LIGHTS_ONOFF:
+                    //设置多个站点on off 状态
+                    ids = intent.getShortArrayExtra(EXTRA_MULTI_STATIONS_IDS);
+                    boolean onb = intent.getBooleanExtra(EXTRA_LIGHTS_ONOFF, true);
+                    receiver = intent.getParcelableExtra(EXTRA_RESULTRECEIVER);
+                    handleActionSetLightsOnOff(ids, onb, receiver);
+                    break;
                 case ACTION_LOGIN_GATE:
                     //登录网关
                     String clientID = intent.getStringExtra(EXTRA_CLIENTID);
@@ -495,6 +518,45 @@ public class CommIntentService extends IntentService {
     }
 
     /////////////////////////////// 服务处理 ///////////////////////////////////
+
+    private void handleActionSetLightsOnOff(short[] ids, boolean on, ResultReceiver receiver) {
+        int resultCode = 0;
+        Bundle resultData = new Bundle();
+
+        DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+        OutputStream os = dataAgent.getOutputStream();
+        InputStream is = dataAgent.getInputStream();
+
+        SetLightsOnOffMsg setLightsOnOffMsg = MessageUtils.composeSetLightsOnOffMsg(ids, on);
+
+        Log.d(TAG, String.format("多站点开关-消息[%s]", setLightsOnOffMsg.toString()));
+
+        byte[] bytes = setLightsOnOffMsg.toMessageByteArray();
+        short msgID = setLightsOnOffMsg.getMessageID();
+
+        try {
+            //clear
+            is.skip(is.available());
+
+            os.write(bytes);
+            os.flush();
+
+            byte[] tempBytes = new byte[Constants.SYSTEM_SETTINGS.NETWORK_PKG_LENGTH];
+            byte[] readedBytes;
+            int readedNum = is.read(tempBytes);
+            readedBytes = ArrayUtils.subarray(tempBytes, 0, readedNum);
+
+            resultData.putByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT, readedBytes);
+            resultData.putInt(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_COUNT, readedNum);
+            resultData.putShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID, msgID);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.w(TAG, ExceptionUtils.getFullStackTrace(e));
+            resultCode = Constants.COMMON.EC_NETWORK_ERROR;
+        }
+
+        receiver.send(resultCode, resultData);
+    }
 
     private void handleActionUnbindStationFromRemoter(short remoterID, byte controlNum, short[] ids, ResultReceiver receiver) {
         int resultCode = 0;

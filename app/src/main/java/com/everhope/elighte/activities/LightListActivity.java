@@ -90,72 +90,72 @@ public class LightListActivity extends ActionBarActivity {
         listView.setAdapter(subGroupLightsListViewAdapter);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         //设置列表点击事件
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, final View view, int position, long id) {
-                progressDialog = ProgressDialog.show(LightListActivity.this, Constants.SYSTEM_SETTINGS.ELIGHTE,"",true);
-                progressDialog.setCancelable(true);
-                //进入站点识别状态
-                final LightGroup lightGroup = subGroupLightsListViewAdapter.getItem(position);
-                if (lightGroup.light.lostConnection) {
-                    Toast.makeText(LightListActivity.this, "该灯当前不可用",Toast.LENGTH_LONG).show();
-                    progressDialog.dismiss();
-                    return;
-                }
-                String lightID = lightGroup.light.lightID;
-                final Light light = lightGroup.light;
-                DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
-                dataAgent.enterStationIdentify(LightListActivity.this, new ResultReceiver(new Handler()) {
-                    @Override
-                    protected void onReceiveResult(int resultCode, Bundle resultData) {
-                        progressDialog.dismiss();
-                        if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
-                            //读到了回应消息
-                            byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
-                            short isShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
-                            //解析回应消息
-                            CommonMsgResponse enterStationIdReturnMsg = null;
-                            try {
-                                enterStationIdReturnMsg = MessageUtils.decomposeEnterStationIdReturnMsg(msgBytes, msgBytes.length, isShould);
-                            } catch (Exception e) {
-                                Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                                Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
-                                return;
-                            }
-
-                            if (enterStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
-                                Log.w(TAG, String.format("消息返回错误[%s]", enterStationIdReturnMsg.getReturnCode() + ""));
-                                Toast.makeText(LightListActivity.this, AppUtils.getErrorInfo(enterStationIdReturnMsg.getReturnCode() + ""), Toast.LENGTH_LONG).show();
-                                return;
-                            }
-
-                            Log.i(TAG, "进入站点识别--回应消息 " + enterStationIdReturnMsg.toString());
-
-                            //弹出对话框进行输入
-                            EditText editText = new EditText(LightListActivity.this);
-
-                            RenameLightListener renameLightListener = new RenameLightListener(light,view,editText);
-                            RenameLightCancelListener renameLightCancelListener = new RenameLightCancelListener(light);
-                            AlertDialog.Builder builder = new AlertDialog.Builder(LightListActivity.this).setTitle("重命名").setIcon(android.R.drawable.ic_menu_edit)
-                                    .setView(editText)
-                                    .setPositiveButton("确定", renameLightListener)
-                                    .setNegativeButton("取消", renameLightCancelListener);
-                            AlertDialog alertDialog = builder.create();
-                            alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-                            alertDialog.show();
-
-                            editText.setFocusable(true);
-                            editText.requestFocus();
-                        } else {
-                            Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
-                            Log.w(TAG, "错误码 " + resultCode);
-                        }
-                    }
-                }, lightID);
-
-//                Toast.makeText(LightListActivity.this, "light id" + light.lightID, Toast.LENGTH_LONG).show();
-            }
-        });
+//        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//            @Override
+//            public void onItemClick(AdapterView<?> parent, final View view, int position, long id) {
+//                progressDialog = ProgressDialog.show(LightListActivity.this, Constants.SYSTEM_SETTINGS.ELIGHTE,"",true);
+//                progressDialog.setCancelable(true);
+//                //进入站点识别状态
+//                final LightGroup lightGroup = subGroupLightsListViewAdapter.getItem(position);
+//                if (lightGroup.light.lostConnection) {
+//                    Toast.makeText(LightListActivity.this, "该灯当前不可用",Toast.LENGTH_LONG).show();
+//                    progressDialog.dismiss();
+//                    return;
+//                }
+//                String lightID = lightGroup.light.lightID;
+//                final Light light = lightGroup.light;
+//                DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+//                dataAgent.enterStationIdentify(LightListActivity.this, new ResultReceiver(new Handler()) {
+//                    @Override
+//                    protected void onReceiveResult(int resultCode, Bundle resultData) {
+//                        progressDialog.dismiss();
+//                        if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+//                            //读到了回应消息
+//                            byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+//                            short isShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+//                            //解析回应消息
+//                            CommonMsgResponse enterStationIdReturnMsg = null;
+//                            try {
+//                                enterStationIdReturnMsg = MessageUtils.decomposeEnterStationIdReturnMsg(msgBytes, msgBytes.length, isShould);
+//                            } catch (Exception e) {
+//                                Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+//                                Toast.makeText(LightListActivity.this, "消息错误",Toast.LENGTH_LONG).show();
+//                                return;
+//                            }
+//
+//                            if (enterStationIdReturnMsg.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+//                                Log.w(TAG, String.format("消息返回错误[%s]", enterStationIdReturnMsg.getReturnCode() + ""));
+//                                Toast.makeText(LightListActivity.this, AppUtils.getErrorInfo(enterStationIdReturnMsg.getReturnCode() + ""), Toast.LENGTH_LONG).show();
+//                                return;
+//                            }
+//
+//                            Log.i(TAG, "进入站点识别--回应消息 " + enterStationIdReturnMsg.toString());
+//
+//                            //弹出对话框进行输入
+//                            EditText editText = new EditText(LightListActivity.this);
+//
+//                            RenameLightListener renameLightListener = new RenameLightListener(light,view,editText);
+//                            RenameLightCancelListener renameLightCancelListener = new RenameLightCancelListener(light);
+//                            AlertDialog.Builder builder = new AlertDialog.Builder(LightListActivity.this).setTitle("重命名").setIcon(android.R.drawable.ic_menu_edit)
+//                                    .setView(editText)
+//                                    .setPositiveButton("确定", renameLightListener)
+//                                    .setNegativeButton("取消", renameLightCancelListener);
+//                            AlertDialog alertDialog = builder.create();
+//                            alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+//                            alertDialog.show();
+//
+//                            editText.setFocusable(true);
+//                            editText.requestFocus();
+//                        } else {
+//                            Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+//                            Log.w(TAG, "错误码 " + resultCode);
+//                        }
+//                    }
+//                }, lightID);
+//
+////                Toast.makeText(LightListActivity.this, "light id" + light.lightID, Toast.LENGTH_LONG).show();
+//            }
+//        });
 
         //添加返回按钮
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -400,13 +400,40 @@ public class LightListActivity extends ActionBarActivity {
                         BrightChangeListener brightChangeListener = new BrightChangeListener(lightGroup.light);
                         seekBar.setOnSeekBarChangeListener(brightChangeListener);
 
-                        //添加设置场景亮度为0的事件
-                        layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+                        //添加设置单灯开关事件
+                        ImageView imageView = (ImageView)layout.findViewById(R.id.scene_power_switch);
+                        imageView.setImageResource(lightGroup.light.switchOn ? R.drawable.light_off : R.drawable.light_on);
+                        imageView.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                seekBar.setProgress(0);
+                                ImageView imageView = (ImageView)v;
+                                if (lightGroup.light.switchOn) {
+                                    //关闭 off
+                                    imageView.setImageResource(R.drawable.light_on);
+                                    lightGroup.light.switchOn = false;
+                                    //发送off命令
+                                    sendSceneOnOffControl(lightGroup.light, false);
+//                            seekBar.setProgress(0);
+                                } else {
+                                    //打开 on
+                                    imageView.setImageResource(R.drawable.light_off);
+                                    lightGroup.light.switchOn = true;
+                                    seekBar.setProgress(lightGroup.light.brightness);
+                                    //发送on命令
+                                    sendSceneOnOffControl(lightGroup.light, true);
+//                            sendSceneOnControl(scene);
+                                }
+
                             }
                         });
+
+                        //添加设置场景亮度为0的事件
+//                        layout.findViewById(R.id.scene_power_switch).setOnClickListener(new View.OnClickListener() {
+//                            @Override
+//                            public void onClick(View v) {
+//                                seekBar.setProgress(0);
+//                            }
+//                        });
 
                         //发送整个分组的设置命令
 //                    sendScenePackControl(group);
@@ -422,6 +449,53 @@ public class LightListActivity extends ActionBarActivity {
                 });
             }
             return convertView;
+        }
+    }
+
+    /**
+     * 发送场景off命令
+     * @param light
+     */
+    private void sendSceneOnOffControl(final Light light, boolean onoff) {
+        //获取当前场景所有灯
+        if (light != null) {
+            short[] ids = new short[1];
+            ids[0] = Short.parseShort(light.lightID);
+
+            DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
+
+            dataAgent.setLightsOnOff(LightListActivity.this, ids, onoff, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == Constants.COMMON.RESULT_CODE_OK) {
+                        //读到了回应消息
+                        byte[] msgBytes = resultData.getByteArray(Constants.KEYS_PARAMS.NETWORK_READED_BYTES_CONTENT);
+                        short idShould = resultData.getShort(Constants.KEYS_PARAMS.MESSAGE_RANDOM_ID);
+                        //解析回应消息
+                        CommonMsgResponse msgResponse = null;
+                        try {
+                            msgResponse = MessageUtils.decomposeCommonMsgResponse(msgBytes, msgBytes.length, idShould);
+                            Log.i(TAG, String.format("场景开关命令返回-[%s]", msgResponse.toString()));
+                        } catch (Exception e) {
+                            Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
+                            Toast.makeText(LightListActivity.this, "消息错误", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        //检测操作结果
+                        if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
+                            Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
+                            Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
+                        //操作成功 保存
+                        light.save();
+                    } else {
+                        Toast.makeText(LightListActivity.this, "出错啦", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "错误码 " + resultCode);
+                    }
+                }
+            });
         }
     }
 

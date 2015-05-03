@@ -45,6 +45,14 @@ public class SubGroup extends Model {
     @Column(name="y")
     public int y;
 
+    /**
+     * 场景状态
+     * 0-关闭
+     * 1-开启
+     */
+    @Column(name="STATUS")
+    public int status;
+
     public List<LightGroup> lightGroups() {
 //        new Select().from(LightGroup.class).where("")
         return getMany(LightGroup.class, "SUBGROUP");

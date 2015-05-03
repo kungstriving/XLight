@@ -42,6 +42,10 @@ public class DataAgent {
 
     ///////////////////////////// 通信接口定义 ///////////////////////////////////
 
+    public void setLightsOnOff(Context context, short[] stationIDs, boolean on, ResultReceiver receiver) {
+        CommIntentService.startActionSetLightsOnOff(context, stationIDs, on, receiver);
+    }
+
     public void bindStationToRemoter(Context context, short remoterID, byte controlNum, short[] stationIDs, ResultReceiver receiver) {
         CommIntentService.startActionBindStationToRemoter(context,remoterID,controlNum,stationIDs,receiver);
     }

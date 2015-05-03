@@ -44,7 +44,8 @@ public class ChooseLightActivity extends ActionBarActivity {
         //获取所传入的分组
         Intent intent = getIntent();
         // 1是默认是所有灯分组
-        int groupID = intent.getIntExtra("subgroup_id", 1);
+//        int groupID = intent.getIntExtra("subgroup_id", 1);
+        long groupID = intent.getLongExtra("subgroup_id", 1L);
         SubGroup subGroup = SubGroup.load(SubGroup.class, groupID);
         List<Light> lights = new ArrayList<>();
         List<LightGroup> lightGroupList = subGroup.lightGroups();

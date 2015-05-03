@@ -72,28 +72,28 @@ public class AppUtils {
         sunsetScene.name = "日落";
         sunsetScene.imgName = "sunset";
         sunsetScene.brightness = 0;
-        sunsetScene.status = 0;
+        sunsetScene.status = 1;
         sunsetScene.save();
 
         Scene seaScene = new Scene();
         seaScene.name = "海边";
         seaScene.imgName = "sea";
         seaScene.brightness = 0;
-        seaScene.status = 0;
+        seaScene.status = 1;
         seaScene.save();
 
         Scene forestScene = new Scene();
         forestScene.name = "森林";
         forestScene.imgName = "forest";
         forestScene.brightness = 0;
-        forestScene.status = 0;
+        forestScene.status = 1;
         forestScene.save();
 
         Scene rainbowScene = new Scene();
         rainbowScene.name = "彩虹";
         rainbowScene.imgName = "rainbow";
         rainbowScene.brightness = 0;
-        rainbowScene.status = 0;
+        rainbowScene.status = 1;
         rainbowScene.save();
 
         //新建分组

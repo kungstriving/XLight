@@ -23,6 +23,7 @@ import com.everhope.elighte.models.SearchStationsMsg;
 import com.everhope.elighte.models.ServiceDiscoverMsg;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.SetGateNetworkMsgResponse;
+import com.everhope.elighte.models.SetLightsOnOffMsg;
 import com.everhope.elighte.models.StationColorControlMsg;
 import com.everhope.elighte.models.UnBindStationsFromRemoterMsg;
 
@@ -65,6 +66,16 @@ public class MessageUtils {
         bindStationsToRemoterMsg.buildUp();
 
         return  bindStationsToRemoterMsg;
+    }
+
+    public static SetLightsOnOffMsg composeSetLightsOnOffMsg(short[] ids, boolean on) {
+        SetLightsOnOffMsg setLightsOnOffMsg = new SetLightsOnOffMsg();
+        setLightsOnOffMsg.setOpIDs(ids);
+        setLightsOnOffMsg.setOn(on);
+
+        setLightsOnOffMsg.buildUp();
+
+        return setLightsOnOffMsg;
     }
 
     public static MultiStationColorControlMsg composeMultiStationColorControlMsg(short[] ids, int[] colors) {

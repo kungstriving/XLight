@@ -47,6 +47,8 @@ public class Light extends Model{
 
     /**
      * 开关状态
+     * true=打开
+     * false=关闭
      */
     @Column(name="SWITCH_ON")
     public boolean switchOn = true;
@@ -59,6 +61,11 @@ public class Light extends Model{
     public int bColor;
     @Column(name = "BRIGHTNESS")
     public int brightness;
+
+    @Column(name="x")
+    public int x;
+    @Column(name="y")
+    public int y;
 
     public List<LightGroup> lightGroups() {
         return getMany(LightGroup.class, "LIGHT");
