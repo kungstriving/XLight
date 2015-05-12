@@ -152,8 +152,10 @@ public class MainActivity extends ActionBarActivity {
 
                     StationObject[] gateAllStations = getAllStationsMsgResponse.getStationObjects();
 
-                    if (gateAllStations == null || gateAllStations.length == 0) {
-                        return;
+                    if (gateAllStations == null) {
+                        //网关内容为空 则全部清除
+                        gateAllStations = new StationObject[0];
+//                        return;
                     }
                     //判断新增或修改
 
@@ -177,13 +179,18 @@ public class MainActivity extends ActionBarActivity {
                     //判断是否删除
                     checkDeleteLight(myLights, gateAllStations);
                     checkDeleteRemoter(myRemoters, gateAllStations);
+
+                    //启动周期同步
+                    startAlarmSync();
                 } else {
                     //出错
                     Log.e(TAG, String.format("获取所有站点列表出错 Code=[%s]", resultCode + ""));
                 }
             }
         });
+    }
 
+    private void startAlarmSync() {
         //启动周期性同步数据
         Intent intent = new Intent(this, SyncStationAlarmReceiver.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -197,9 +204,7 @@ public class MainActivity extends ActionBarActivity {
         alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+100, intervalMillis, pIntent);
 
         Log.i(TAG, "启动周期同步服务");
-        //各个站点状态
     }
-
     private void checkDeleteLight(List<Light> myLights, StationObject[] allStations) {
         for(Light light : myLights) {
             boolean delete = true;

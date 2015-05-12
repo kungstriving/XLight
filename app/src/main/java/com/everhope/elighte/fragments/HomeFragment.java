@@ -50,6 +50,8 @@ public class HomeFragment extends Fragment{
 
     private ScrollView homeContentSV;
 
+    private Scene currentScene;
+
     public HomeFragment() {}
 
     @Nullable
@@ -113,7 +115,7 @@ public class HomeFragment extends Fragment{
         scenePane.setOrientation(LinearLayout.VERTICAL);
 
         //场景图片
-        ImageView sceneImg = new ImageView(getActivity());
+        final ImageView sceneImg = new ImageView(getActivity());
         final int sceneImgID = getResources().getIdentifier(scene.imgName, "drawable", getActivity().getPackageName());
         sceneImg.setImageResource(sceneImgID);
         //设置边框
@@ -123,6 +125,7 @@ public class HomeFragment extends Fragment{
         sceneImg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 //弹出窗口进行亮度选择
                 final PopupWindow popup = new PopupWindow(getActivity());
                 //设置弹出窗口的样式
@@ -155,14 +158,19 @@ public class HomeFragment extends Fragment{
 
                 //添加场景亮度调节
                 final SeekBar seekBar = (SeekBar)layout.findViewById(R.id.scene_bright_sb);
-                seekBar.setProgress(scene.brightness);
+                if (currentScene != null && currentScene.getId() == scene.getId()) {
+                    seekBar.setProgress(scene.brightness);
+                } else {
+                    seekBar.setProgress(100);
+                }
 
                 BrightChangeListener brightChangeListener = new BrightChangeListener(scene);
                 seekBar.setOnSeekBarChangeListener(brightChangeListener);
 
                 //添加设置场景开关事件
                 ImageView imageView = (ImageView)layout.findViewById(R.id.scene_power_switch);
-                imageView.setImageResource(scene.status == 0 ? R.drawable.light_off : R.drawable.light_on);
+//                imageView.setImageResource(scene.status == 0 ? R.drawable.light_off : R.drawable.light_on);
+                imageView.setImageResource(R.drawable.light_on);
                 imageView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -188,8 +196,10 @@ public class HomeFragment extends Fragment{
                 });
 
                 //发送整个场景的设置命令
+                sendSceneOnOffControl(scene, true);
                 sendScenePackControl(scene);
 
+                currentScene = scene;
                 //设置scene状态为开启
 //                scene.status = 1;
             }
@@ -240,7 +250,7 @@ public class HomeFragment extends Fragment{
                             Log.i(TAG, String.format("场景开关命令返回-[%s]", msgResponse.toString()));
                         } catch (Exception e) {
                             Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                            Toast.makeText(getActivity(), "消息错误", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(getActivity(), "消息错误", Toast.LENGTH_SHORT).show();
                             return;
                         }
                         //检测操作结果
@@ -292,13 +302,13 @@ public class HomeFragment extends Fragment{
                             Log.i(TAG, String.format("场景控制命令返回-[%s]", msgResponse.toString()));
                         } catch (Exception e) {
                             Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                            Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
+//                            Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_SHORT).show();
                             return;
                         }
                         //检测操作结果
                         if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
                             Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
-                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
                             return;
                         }
                     } else {
@@ -366,13 +376,13 @@ public class HomeFragment extends Fragment{
                                 msgResponse = MessageUtils.decomposeMultiStationBrightControlResponse(msgBytes, msgBytes.length, idShould);
                             } catch (Exception e) {
                                 Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                                Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
+//                                Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_SHORT).show();
                                 return;
                             }
                             //检测操作结果
                             if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
                                 Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
-                                Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                                Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
                                 return;
                             }
                             //设置正确

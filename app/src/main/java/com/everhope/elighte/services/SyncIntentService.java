@@ -18,13 +18,17 @@ import com.everhope.elighte.activities.APSetupActivity;
 import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.constants.Constants;
 import com.everhope.elighte.constants.FunctionCodes;
+import com.everhope.elighte.constants.StationTypes;
 import com.everhope.elighte.helpers.AppUtils;
 import com.everhope.elighte.helpers.MessageUtils;
+import com.everhope.elighte.models.BindStationToRemoterCmd;
 import com.everhope.elighte.models.GetAllLightsStatusMsg;
 import com.everhope.elighte.models.GetStationsStatusMsg;
 import com.everhope.elighte.models.GetStationsStatusMsgResponse;
 import com.everhope.elighte.models.Light;
+import com.everhope.elighte.models.LightRemoter;
 import com.everhope.elighte.models.MultiStationBrightControlMsg;
+import com.everhope.elighte.models.Remoter;
 import com.everhope.elighte.models.SetGateNetworkMsg;
 import com.everhope.elighte.models.StationBrightTurnCmd;
 import com.everhope.elighte.models.StationColorTurnCmd;
@@ -138,15 +142,37 @@ public class SyncIntentService extends IntentService {
                 //发送消息
                 Short[] tmpIDs = new Short[shortIDs.size()];
                 tmpIDs = shortIDs.toArray(tmpIDs);
-                sendToGate(ArrayUtils.toPrimitive(tmpIDs));
+                sendToGate(ArrayUtils.toPrimitive(tmpIDs), StationTypes.LIGHT);
                 shortIDs.clear();
             }
             count++;
         }
 
+        //sleep for 1 second
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        //遥信遥控器
+        List<Remoter> remoterList = Remoter.getAll();
+        shortIDs = new ArrayList<>();
+        count = 1;
+        for (Remoter remoter : remoterList) {
+            shortIDs.add(Short.parseShort(remoter.remoterID));
+            if(shortIDs.size() == maxSignalStationCount || count == remoterList.size()) {
+                //发送消息
+                Short[] tmpIDs = new Short[shortIDs.size()];
+                tmpIDs = shortIDs.toArray(tmpIDs);
+                sendToGate(ArrayUtils.toPrimitive(tmpIDs), StationTypes.REMOTER);
+                shortIDs.clear();
+            }
+            count++;
+        }
     }
 
-    private void sendToGate(short [] ids) {
+    private void sendToGate(short [] ids, StationTypes stationType) {
 
         DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
         Socket socket = dataAgent.getSocket();
@@ -181,7 +207,11 @@ public class SyncIntentService extends IntentService {
                 return;
             }
             Log.i(TAG, String.format("批量获取站点状态回应消息 [%s]",getStationsStatusMsgResponse.toString()));
-            handleMessageReturn(getStationsStatusMsgResponse, msgID);
+            if (stationType == StationTypes.LIGHT) {
+                handleMessageReturn(getStationsStatusMsgResponse, msgID);
+            } else if (stationType == StationTypes.REMOTER) {
+                handleMessageReturnRemoter(getStationsStatusMsgResponse, msgID);
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -195,6 +225,51 @@ public class SyncIntentService extends IntentService {
 //                showReconfigWindow();
                 Toast.makeText(getApplicationContext(), "重连失败", Toast.LENGTH_SHORT).show();
             }
+        }
+    }
+
+    private void handleMessageReturnRemoter(GetStationsStatusMsgResponse msgResponse, short msgID) {
+        //检测消息ID
+        if (msgResponse.getMessageID() != msgID) {
+            Log.w(TAG, String.format("消息ID不匹配 发送[%s] 收到[%s]", msgID, msgResponse.getMessageID()));
+            return;
+        }
+
+        Map<Short, List<StationSubCmd>> map = msgResponse.getMap();
+        for(Map.Entry<Short, List<StationSubCmd>> entry : map.entrySet()) {
+            short stationID = entry.getKey();
+            List<StationSubCmd> commands = entry.getValue();
+//            Light light = Light.getByLightID(stationID+"");
+            Remoter remoter = Remoter.getRemoterByID(stationID+"");
+            //clear remoter connections
+            List<LightRemoter> remoters = remoter.lightRemoters();
+            for(LightRemoter tempRemoter : remoters) {
+                tempRemoter.delete();
+            }
+            for (StationSubCmd stationSubCmd : commands) {
+                FunctionCodes.SubFunctionCodes functionCodes = stationSubCmd.getSubFunctionCode();
+                switch (functionCodes) {
+                    //遥控器
+                    case BIND_REMOTER:
+                        BindStationToRemoterCmd bindStationToRemoterCmd = (BindStationToRemoterCmd)stationSubCmd;
+                        byte controlNum = bindStationToRemoterCmd.getControlNum();
+                        short lightID = bindStationToRemoterCmd.getStationID();
+
+                        int num = controlNum;
+
+                        LightRemoter newLightRemoter = new LightRemoter();
+                        newLightRemoter.light = Light.getByLightID(lightID + "");
+//                        newLightRemoter.light = Light.getByLightMAC()
+                        newLightRemoter.remoter = remoter;
+                        newLightRemoter.groupName = num + "";
+                        newLightRemoter.save();
+
+                        break;
+                    default:
+                        break;
+                }
+            }
+
         }
     }
 
@@ -250,6 +325,7 @@ public class SyncIntentService extends IntentService {
                         StationBrightTurnCmd stationBrightTurnCmd = (StationBrightTurnCmd)stationSubCmd;
                         light.brightness = stationBrightTurnCmd.getBrightValue();
                         break;
+
                     default:
                         break;
                 }

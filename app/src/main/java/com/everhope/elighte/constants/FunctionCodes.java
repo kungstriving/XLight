@@ -251,6 +251,10 @@ public class FunctionCodes {
                     //Byte.decode("0x80")
 
                     return DEVICE_STATUS;
+                case 32:
+                    return BIND_REMOTER;
+                case 33:
+                    return UNBIND_REMOTER;
                 case 1:
                     //Byte.decode("0x01")
                     return DEVICE_SWITCH;

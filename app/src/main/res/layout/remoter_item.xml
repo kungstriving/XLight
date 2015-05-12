@@ -6,10 +6,9 @@
     android:layout_height="wrap_content">
 
     <ImageView
-        android:layout_width="match_parent"
+        android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_gravity="center_vertical"
-        android:layout_weight="4"
         android:src="@drawable/remoter_icon"/>
     <TextView
         android:id="@+id/remoter_name"
@@ -20,8 +19,17 @@
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
         android:textColor="#000"
-        android:layout_weight="1"
-        android:minHeight="?android:attr/listPreferredItemHeightSmall"/>
+        android:layout_weight="7"
+        android:minHeight="?android:attr/listPreferredItemHeightSmall"
+        android:singleLine="true"
+        android:ellipsize="end"/>
+    <ImageView
+        android:id="@+id/remoter_rename"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_margin="5dp"
+        android:layout_gravity="center_vertical"
+        android:src="@drawable/ic_action_edit_b"/>
 <!--    <ImageView
         android:id="@+id/remoter_details"
         android:layout_width="match_parent"

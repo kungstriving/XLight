@@ -43,6 +43,10 @@ public class Remoter extends Model {
     @Column(name="LOST_CONNECTION")
     public boolean lostConnection = false;
 
+    public List<LightRemoter> lightRemoters() {
+        return getMany(LightRemoter.class, "REMOTER");
+    }
+
     public List<Light> groupLights(String groupNum) {
 
         List<Light> lights = new ArrayList<>();

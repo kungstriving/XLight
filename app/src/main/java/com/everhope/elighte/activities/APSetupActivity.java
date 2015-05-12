@@ -1,12 +1,15 @@
 package com.everhope.elighte.activities;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -20,6 +23,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -41,6 +45,7 @@ import com.everhope.elighte.models.SetGateNetworkMsgResponse;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -64,7 +69,31 @@ public class APSetupActivity extends ActionBarActivity {
         progressBar.setVisibility(View.VISIBLE);
         setContentsStatus(false);
 
+        final WifiManager wifiManager = (WifiManager)getSystemService(Context.WIFI_SERVICE);
 
+        final Spinner ssidSpinner = (Spinner)findViewById(R.id.wifi_id);
+
+        final List<String> list = new ArrayList<>();
+        final ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, list);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerAdapter.setNotifyOnChange(true);
+        ssidSpinner.setAdapter(spinnerAdapter);
+
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                list.clear();
+                List<ScanResult> results = wifiManager.getScanResults();
+                for(ScanResult scanResult : results) {
+                    String strSsid = scanResult.SSID;
+                    list.add(strSsid);
+                }
+
+                spinnerAdapter.notifyDataSetChanged();
+            }
+        }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+        wifiManager.startScan();
         //添加返回按钮
 //        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 //        getSupportActionBar().setHomeButtonEnabled(true);
@@ -86,7 +115,7 @@ public class APSetupActivity extends ActionBarActivity {
 
 //                Toast.makeText(APSetupActivity.this, "设置网关连接网络", Toast.LENGTH_LONG).show();
                 //通知网关路由器密码
-                final String ssid = ((EditText)findViewById(R.id.wifi_id)).getText().toString();
+                final String ssid = ((Spinner)findViewById(R.id.wifi_id)).getSelectedItem().toString();
                 String pwd = ((EditText)findViewById(R.id.wifi_pwd)).getText().toString();
                 //WPA2 PSK or WPA PSK or 无
                 int securityPos = ((Spinner)findViewById(R.id.wifi_security)).getSelectedItemPosition();
@@ -210,11 +239,12 @@ public class APSetupActivity extends ActionBarActivity {
 
                         builder.setMessage("家庭网络连接失败，请检查网络设置");
                         builder.setTitle("确认");
-                        builder.setPositiveButton("重试", new DialogInterface.OnClickListener() {
+                        builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                mainHandler.sendEmptyMessage(2);
-                                swichConnectionToLast(lastSSID);
+//                                mainHandler.sendEmptyMessage(2);
+//                                swichConnectionToLast(lastSSID);
+                                setContentsStatus(true);
                             }
                         });
                         builder.create().show();
@@ -225,6 +255,8 @@ public class APSetupActivity extends ActionBarActivity {
             }
         };
 
+        //get ssid list
+        getSsidList();
         //切换连接wifi到AP网络
         switchConnectionToAP(APSetupActivity.this);
 
@@ -232,6 +264,10 @@ public class APSetupActivity extends ActionBarActivity {
 //        startActivity(intent);
 //        finish();
         return;
+    }
+
+    private void getSsidList() {
+
     }
 
     private void setContentsStatus(boolean status) {

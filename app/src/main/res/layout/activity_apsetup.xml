@@ -25,7 +25,7 @@
                 android:layout_margin="10dp"
                 android:text="家庭网络ID" />
 
-            <EditText
+            <Spinner
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="10dp"
@@ -77,6 +77,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="0.3"
                 android:layout_marginRight="10dp"
+                android:inputType="textPassword"
+                android:singleLine="true"
                 android:id="@+id/wifi_pwd" />
         </LinearLayout>
         <Button

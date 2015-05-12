@@ -608,6 +608,7 @@ public class LightListActivity extends ActionBarActivity {
                 message.what = ADD_LIGHT_TO_LIST;
                 message.obj = newLightGroup;
                 handler.sendMessage(message);
+                lights.add(newLight);
             }
         }
     }
@@ -633,6 +634,11 @@ public class LightListActivity extends ActionBarActivity {
                 Intent intent = new Intent(LightListActivity.this, ChooseLightActivity.class);
                 //默认从所有灯分组选取
                 intent.putExtra("subgroup_id",1);
+                long[] rmIDs = new long[lights.size()];
+                for (int i = 0; i < rmIDs.length; i++) {
+                    rmIDs[i] = Long.parseLong(lights.get(i).lightID);
+                }
+                intent.putExtra("filter_rm_ids", rmIDs);
                 startActivityForResult(intent, REQUEST_CODE_CHOOSE_LIGHTS);
                 return true;
             case R.id.action_remove_light_from_group:

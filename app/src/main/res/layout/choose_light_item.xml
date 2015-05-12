@@ -24,7 +24,8 @@
         android:textColor="@color/white"
         android:layout_weight="8"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"
-        android:maxLines="1" />
+        android:singleLine="true"
+        android:ellipsize="end"/>
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

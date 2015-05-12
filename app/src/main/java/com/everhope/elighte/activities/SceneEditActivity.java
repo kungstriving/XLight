@@ -149,7 +149,7 @@ public class SceneEditActivity extends ActionBarActivity {
                                     msgResponse = MessageUtils.decomposeStationColorControlMsg(msgBytes, msgBytes.length, idShould);
                                 } catch (Exception e) {
                                     Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                                    Toast.makeText(SceneEditActivity.this, "消息错误",Toast.LENGTH_LONG).show();
+//                                    Toast.makeText(SceneEditActivity.this, "消息错误",Toast.LENGTH_SHORT).show();
                                     return;
                                 }
                                 if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {

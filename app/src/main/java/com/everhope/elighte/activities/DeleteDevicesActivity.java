@@ -120,7 +120,7 @@ public class DeleteDevicesActivity extends ActionBarActivity {
 
             Light light = getItem(position);
             TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
-            textView.setFilters(new InputFilter[] { new InputFilter.LengthFilter(25) });
+//            textView.setFilters(new InputFilter[] { new InputFilter.LengthFilter(25) });
             textView.setText(light.name);
 
             if (light.lostConnection) {

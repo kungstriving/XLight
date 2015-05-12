@@ -37,7 +37,7 @@ public class MultiStationColorControlMsg extends Message {
 
         ////////////////////////// 设置数据域 /////////////////////////////////
         short stationCount = (short)opIDs.length;
-        int dataRegionLength = stationCount*8 + 2;
+        int dataRegionLength = stationCount*12 + 2;
         ByteBuffer byteBuffer = ByteBuffer.allocate(dataRegionLength);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         //设置站点对象数目
@@ -47,8 +47,8 @@ public class MultiStationColorControlMsg extends Message {
             short stationID = opIDs[i];
             byteBuffer.putShort(stationID);
             //设置站点子命令数目
-            short stationSubCmdsCount = 1;
-            byteBuffer.putShort((short)1);
+            short stationSubCmdsCount = 2;
+            byteBuffer.putShort(stationSubCmdsCount);
             //设置站点颜色调节子命令
             StationColorTurnCmd stationColorTurnCmd = new StationColorTurnCmd();
             int colorInt = colorArr[i];
@@ -63,6 +63,15 @@ public class MultiStationColorControlMsg extends Message {
             hsbData[1] = stationColorTurnCmd.getH();
             hsbData[0] = stationColorTurnCmd.getSubFunctionCode().getFuncCode();
             byteBuffer.put(hsbData);
+            //设置亮度调节命令
+            StationBrightTurnCmd stationBrightTurnCmd = new StationBrightTurnCmd();
+            byte[] brightData = new byte[4];
+            brightData[3] = stationColorTurnCmd.getB();
+            brightData[2] = 0x00;
+            brightData[1] = 0x00;
+            brightData[0] = stationBrightTurnCmd.getSubFunctionCode().getFuncCode();
+
+            byteBuffer.put(brightData);
         }
 
         setData(byteBuffer.array());

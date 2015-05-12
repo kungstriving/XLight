@@ -85,7 +85,8 @@ public class UDPIntentService extends IntentService {
                 InetAddress inetAddress = InetAddress.getByName(AppUtils.getSubnetBroadcaseAddr(UDPIntentService.this));
 
                 ServiceDiscoverMsg serviceDiscoverMsg = MessageUtils.composeServiceDiscoverMsg();
-                byte[] data = serviceDiscoverMsg.toMessageByteArray();
+//                byte[] data = serviceDiscoverMsg.toMessageByteArray();
+                byte[] data = "HF-A11ASSISTHREAD".getBytes();
                 DatagramPacket datagramPacket = new DatagramPacket(data, data.length, inetAddress, Constants.SYSTEM_SETTINGS.GATE_BROADCAST_PORT);
                 datagramSocket.send(datagramPacket);
 
@@ -94,14 +95,15 @@ public class UDPIntentService extends IntentService {
                 datagramSocket.setSoTimeout(Constants.SYSTEM_SETTINGS.BROADCASE_SERVICE_DISCOVER_SOTIMEOUT);
                 datagramSocket.receive(recPacket);
                 //解析消息
-                ServiceDiscoverMsg serviceDiscoverMsgResp = null;
-                try {
-                    serviceDiscoverMsgResp = MessageUtils.decomposeServiceDiscoverMsg(readedBytes, readedBytes.length, serviceDiscoverMsg.getMessageID());
-                } catch (Exception e) {
-                    resultCode = Constants.COMMON.EC_MESSAGE_RESOLVE_FAILED;
-                    continue;
-                }
-                Log.i(TAG, String.format("服务发现回应消息 [%s]", serviceDiscoverMsgResp.toString()));
+//                ServiceDiscoverMsg serviceDiscoverMsgResp = null;
+//                try {
+//                    serviceDiscoverMsgResp = MessageUtils.decomposeServiceDiscoverMsg(readedBytes, readedBytes.length, serviceDiscoverMsg.getMessageID());
+//                } catch (Exception e) {
+//                    resultCode = Constants.COMMON.EC_MESSAGE_RESOLVE_FAILED;
+//                    continue;
+//                }
+//                Log.i(TAG, String.format("服务发现回应消息 [%s]", serviceDiscoverMsgResp.toString()));
+                Log.i(TAG, String.format("服务发现回应消息 [%s]", new String(readedBytes)));
 
                 InetAddress gateAddr = recPacket.getAddress();
                 String gateIP = gateAddr.getHostAddress();

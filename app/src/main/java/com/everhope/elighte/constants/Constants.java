@@ -96,7 +96,8 @@ public class Constants {
         /**
          * 网关UDP广播端口 8900
          */
-        public static final int GATE_BROADCAST_PORT = 8900;
+//        public static final int GATE_BROADCAST_PORT = 8900;
+        public static final int GATE_BROADCAST_PORT = 48899;
 
         /**
          * 网络接收数据包的缓存大小
@@ -115,9 +116,9 @@ public class Constants {
         public static final int BROADCAST_SERVICE_DISCOVER_RETRY_TIMES = 3;
 
         /**
-         * 读取数据超时8秒
+         * 读取数据超时3秒
          */
-        public static final int NETWORK_DATA_SOTIMEOUT = 8000;
+        public static final int NETWORK_DATA_SOTIMEOUT = 3000;
 
         /**
          * 读取超时30秒

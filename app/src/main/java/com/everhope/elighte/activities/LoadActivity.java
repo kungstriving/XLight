@@ -81,6 +81,11 @@ public class LoadActivity extends ActionBarActivity {
         PreferenceManager.setDefaultValues(this, R.xml.preference, false);
 
         this.debug = sharedPreferences.getBoolean(Constants.SYSTEM_SETTINGS.DEBUG, false);
+//        if (true) {
+//            Intent tempIntent = new Intent(LoadActivity.this, APSetupActivity.class);
+//
+//            startActivity(tempIntent);
+//        }
     }
 
     /**

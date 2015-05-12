@@ -304,13 +304,13 @@ public class LightFragment extends Fragment {
                             Log.i(TAG, String.format("场景开关命令返回-[%s]", msgResponse.toString()));
                         } catch (Exception e) {
                             Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                            Toast.makeText(getActivity(), "消息错误", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), "消息错误", Toast.LENGTH_SHORT).show();
                             return;
                         }
                         //检测操作结果
                         if (msgResponse.getReturnCode() != CommonMsgResponse.RETURN_CODE_OK) {
                             Log.w(TAG, String.format("消息返回错误-[%s]", msgResponse.getReturnCode() + ""));
-                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), "出错啦", Toast.LENGTH_SHORT).show();
                             return;
                         }
 
@@ -405,7 +405,7 @@ public class LightFragment extends Fragment {
                                 msgResponse = MessageUtils.decomposeMultiStationBrightControlResponse(msgBytes, msgBytes.length, idShould);
                             } catch (Exception e) {
                                 Log.w(TAG, String.format("消息解析出错 [%s]", ExceptionUtils.getFullStackTrace(e)));
-                                Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_LONG).show();
+                                Toast.makeText(getActivity(), "消息错误",Toast.LENGTH_SHORT).show();
                                 return;
                             }
                             //检测操作结果

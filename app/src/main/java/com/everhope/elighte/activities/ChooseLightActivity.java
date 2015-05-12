@@ -25,7 +25,10 @@ import com.everhope.elighte.models.Light;
 import com.everhope.elighte.models.LightGroup;
 import com.everhope.elighte.models.SubGroup;
 
+import org.apache.commons.lang.ArrayUtils;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -46,11 +49,15 @@ public class ChooseLightActivity extends ActionBarActivity {
         // 1是默认是所有灯分组
 //        int groupID = intent.getIntExtra("subgroup_id", 1);
         long groupID = intent.getLongExtra("subgroup_id", 1L);
+        long [] filterIDs = intent.getLongArrayExtra("filter_rm_ids");
         SubGroup subGroup = SubGroup.load(SubGroup.class, groupID);
         List<Light> lights = new ArrayList<>();
         List<LightGroup> lightGroupList = subGroup.lightGroups();
         for(LightGroup lightGroup : lightGroupList) {
-            lights.add(lightGroup.light);
+            long lightID = Long.parseLong(lightGroup.light.lightID);
+            if (!ArrayUtils.contains(filterIDs, lightID)) {
+                lights.add(lightGroup.light);
+            }
         }
 
 
@@ -87,24 +94,22 @@ public class ChooseLightActivity extends ActionBarActivity {
         public View getView(final int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.choose_light_item, parent, false);
-            }
-//            convertView = LayoutInflater.from(ChooseLightActivity.this).inflate(R.layout.choose_light_item, parent,false);
-            Light light = getItem(position);
-            TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
-            textView.setText(light.name);
-            if (light.lostConnection) {
-                ImageView imageView = (ImageView)convertView.findViewById(R.id.choose_light_icon);
-                imageView.setImageResource(R.drawable.offline);
-            }
-
-            CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_cb);
-            checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    lightListView.setItemChecked(position,isChecked);
+                Light light = getItem(position);
+                TextView textView = (TextView)convertView.findViewById(R.id.choose_light_name_tv);
+                textView.setText(light.name);
+                if (light.lostConnection) {
+                    ImageView imageView = (ImageView)convertView.findViewById(R.id.choose_light_icon);
+                    imageView.setImageResource(R.drawable.offline);
                 }
-            });
 
+                CheckBox checkBox = (CheckBox)convertView.findViewById(R.id.select_light_cb);
+                checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        lightListView.setItemChecked(position,isChecked);
+                    }
+                });
+            }
             return convertView;
         }
     }

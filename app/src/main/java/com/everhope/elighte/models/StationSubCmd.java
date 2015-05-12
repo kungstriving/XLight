@@ -3,6 +3,7 @@ package com.everhope.elighte.models;
 import com.everhope.elighte.constants.FunctionCodes;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * 子命令对象
@@ -25,6 +26,7 @@ public class StationSubCmd {
         //获取子命令类型
         byte subCmdType = bytes[0];
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         FunctionCodes.SubFunctionCodes subFunctionCode = FunctionCodes.SubFunctionCodes.fromSubFunctionCodeByte(subCmdType);
         switch (subFunctionCode) {
 
