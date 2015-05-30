@@ -301,7 +301,7 @@ public class LoadActivity extends ActionBarActivity {
             });
         } else {
             //如果存在sta地址 则直连
-            Toast.makeText(LoadActivity.this, String.format("直连STA[%s]", gateIP), Toast.LENGTH_LONG).show();
+//            Toast.makeText(LoadActivity.this, String.format("直连STA[%s]", gateIP), Toast.LENGTH_LONG).show();
             textView.setText("连接网关...");
             connectToGate(gateIP, Constants.SYSTEM_SETTINGS.GATE_TALK_PORT);
         }

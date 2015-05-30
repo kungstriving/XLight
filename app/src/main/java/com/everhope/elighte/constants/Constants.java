@@ -126,9 +126,9 @@ public class Constants {
         public static final int NETWORK_DATA_LONG_SOTIMEOUT = 20000;
 
         /**
-         * 同步数据间隔30秒
+         * 同步数据间隔15秒
          */
-        public static final int SYNC_INTERVAL = 30000;
+        public static final int SYNC_INTERVAL = 15000;
 
         /**
          * 建立连接超时 5秒
@@ -158,7 +158,7 @@ public class Constants {
         /**
          * 搜索新站点的持续时间
          */
-        public static final byte SEARCH_STATIONS_LAST_SECONDS = 60;
+        public static final byte SEARCH_STATIONS_LAST_SECONDS = 30;
     }
 
     /**

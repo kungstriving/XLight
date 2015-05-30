@@ -791,7 +791,7 @@ public class CommIntentService extends IntentService {
 
         //搜寻新站点 线程暂停
         try {
-            Thread.sleep(60*1000);
+            Thread.sleep(Constants.SYSTEM_SETTINGS.SEARCH_STATIONS_LAST_SECONDS*1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

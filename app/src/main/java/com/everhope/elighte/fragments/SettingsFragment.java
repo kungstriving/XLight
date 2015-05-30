@@ -146,8 +146,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     class SearchNewLightsListener implements Preference.OnPreferenceClickListener {
         @Override
         public boolean onPreferenceClick(Preference preference) {
-            progressDialog = ProgressDialog.show(getActivity(), "E-Lighte","搜索一分钟，请耐心等待...",true);
-            progressDialog.setCancelable(true);
+            progressDialog = ProgressDialog.show(getActivity(), "E-Lighte","搜索中，请耐心等待...",true);
+            progressDialog.setCancelable(false);
 
             DataAgent dataAgent = XLightApplication.getInstance().getDataAgent();
             dataAgent.searchNewStations(getActivity(), Constants.SYSTEM_SETTINGS.SEARCH_STATIONS_LAST_SECONDS, new ResultReceiver(new Handler()) {

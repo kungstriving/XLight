@@ -1,7 +1,9 @@
 package com.everhope.elighte.fragments;
 
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
@@ -27,6 +29,7 @@ import android.widget.Toast;
 
 import com.everhope.elighte.R;
 import com.everhope.elighte.XLightApplication;
+import com.everhope.elighte.activities.MainActivity;
 import com.everhope.elighte.activities.SceneEditActivity;
 import com.everhope.elighte.comm.DataAgent;
 import com.everhope.elighte.constants.Constants;
@@ -34,6 +37,7 @@ import com.everhope.elighte.helpers.MessageUtils;
 import com.everhope.elighte.models.CommonMsgResponse;
 import com.everhope.elighte.models.LightScene;
 import com.everhope.elighte.models.Scene;
+import com.everhope.elighte.models.SubGroup;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 
@@ -409,6 +413,37 @@ public class HomeFragment extends Fragment{
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
 
+        }
+    }
+
+    public void addNewScene(String sceneName) {
+        Scene scene = new Scene();
+        scene.name = sceneName;
+        scene.imgName = "rainbow";
+        scene.status = 0;
+        scene.brightness = 0;
+        scene.save();
+
+    }
+
+    public void deleteScene() {
+        if (currentScene != null) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity())
+                    .setTitle("确认")
+                    .setIcon(android.R.drawable.ic_menu_edit)
+                    .setMessage("是否确认删除该场景？")
+                    .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            currentScene.delete();
+                            ((MainActivity)getActivity()).selectItem(2);
+                            ((MainActivity)getActivity()).selectItem(0);
+                        }
+                    })
+                    .setNegativeButton("取消", null);
+            builder.create().show();
+        } else {
+            Toast.makeText(getActivity(), "请选择要删除的场景", Toast.LENGTH_SHORT).show();
         }
     }
 }

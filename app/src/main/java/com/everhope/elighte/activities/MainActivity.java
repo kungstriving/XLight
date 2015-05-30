@@ -56,6 +56,7 @@ import com.everhope.elighte.models.LightGroup;
 import com.everhope.elighte.models.StationObject;
 import com.everhope.elighte.receivers.SyncStationAlarmReceiver;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.util.ArrayList;
@@ -70,6 +71,7 @@ public class MainActivity extends ActionBarActivity {
     private static final String TAG = "MainActivity@Light";
 
     private static final int MSG_ADD_NEWGROUP = 0;
+    private static final int MSG_ADD_SCENE = 1;
 
     private ProgressBar progressBar;
     private ListView leftListView;
@@ -113,6 +115,15 @@ public class MainActivity extends ActionBarActivity {
                             LightFragment lightFragment = (LightFragment)currentFragment;
                             String newGroupName = (String)msg.obj;
                             lightFragment.addNewGroup(newGroupName);
+                        }
+                        break;
+                    case MSG_ADD_SCENE:
+                        if (currentFragment != null) {
+                            HomeFragment homeFragment = (HomeFragment)currentFragment;
+                            String newSceneName = (String)msg.obj;
+                            homeFragment.addNewScene(newSceneName);
+                            selectItem(2);
+                            selectItem(0);
                         }
                         break;
                     default:
@@ -365,7 +376,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     /** Swaps fragments in the main content view */
-    private void selectItem(int position) {
+    public void selectItem(int position) {
 
         FragmentManager fragmentManager = getFragmentManager();
         // Create a new fragment and specify the planet to show based on position
@@ -516,20 +527,20 @@ public class MainActivity extends ActionBarActivity {
             switch (this.currentSelectFrag) {
                 case 0:
                     //场景
-                    menu.findItem(R.id.action_frag_main_add).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_add).setVisible(true);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
-                    menu.findItem(R.id.action_frag_main_rmv).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_rmv).setVisible(true);
                     break;
                 case 1:
                     //灯列表
                     menu.findItem(R.id.action_frag_main_add).setVisible(true);
-                    menu.findItem(R.id.action_frag_main_rmv).setVisible(true);
                     menu.findItem(R.id.action_frag_main_edit).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_rmv).setVisible(true);
                     break;
                 default:
-                    menu.findItem(R.id.action_frag_main_rmv).setVisible(false);
-                    menu.findItem(R.id.action_frag_main_edit).setVisible(false);
                     menu.findItem(R.id.action_frag_main_add).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_edit).setVisible(false);
+                    menu.findItem(R.id.action_frag_main_rmv).setVisible(false);
                     break;
             }
         }
@@ -555,8 +566,7 @@ public class MainActivity extends ActionBarActivity {
                 switch (this.currentSelectFrag) {
                     case 0:
                         //添加场景
-                        fragment = AddSceneFragment.newInstance("","");
-                        setTitle("添加场景");
+                        addScene();
                         break;
                     case 1:
                         //灯列表
@@ -569,8 +579,18 @@ public class MainActivity extends ActionBarActivity {
 
                 break;
             case R.id.action_frag_main_rmv:
-                //删除分组
-                ((LightFragment)this.currentFragment).deleteGroup();
+                switch (this.currentSelectFrag) {
+                    case 0:
+                        //删除场景
+                        ((HomeFragment)this.currentFragment).deleteScene();
+//                        selectItem(2);
+//                        selectItem(0);
+                        break;
+                    case 1:
+                        //删除分组
+                        ((LightFragment)this.currentFragment).deleteGroup();
+                        break;
+                }
                 break;
             default:
                 return super.onOptionsItemSelected(item);
@@ -583,6 +603,25 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return true;
+    }
+
+    private void addScene() {
+        //弹出对话框进行输入
+        EditText editText = new EditText(MainActivity.this);
+
+        InputSceneNameListener inputGroupNameListener = new InputSceneNameListener(editText);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                .setTitle("创建场景")
+                .setIcon(android.R.drawable.ic_menu_edit)
+                .setView(editText)
+                .setPositiveButton("确定", inputGroupNameListener)
+                .setNegativeButton("取消",null);
+        AlertDialog alertDialog = builder.create();
+        alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        alertDialog.show();
+
+        editText.setFocusable(true);
+        editText.requestFocus();
     }
 
     private void addLightGroup() {
@@ -607,7 +646,26 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        selectItem(this.currentSelectFrag);
+//        selectItem(this.currentSelectFrag);
+    }
+
+    class InputSceneNameListener implements DialogInterface.OnClickListener {
+        private EditText sceneNameET;
+        public InputSceneNameListener(EditText editText) {
+            this.sceneNameET = editText;
+        }
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            String newSceneName = this.sceneNameET.getText().toString();
+
+            if (StringUtils.isEmpty(newSceneName)) {
+                return;
+            }
+            Message message = new Message();
+            message.what = MSG_ADD_SCENE;
+            message.obj = newSceneName;
+            mainHandler.sendMessage(message);
+        }
     }
 
     class InputGroupNameListener implements DialogInterface.OnClickListener {
